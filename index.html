@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout & Food Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+<script src="firebase-config.js"></script>
+        :root {
+            --bg-dark: #1a1a2e;
+            --primary-dark: #1f1f38;
+            --text-light: #e0e0e0;
+            --text-muted: #8c8c9a;
+            --accent-primary: #00a8ff;
+            --accent-secondary: #2ecc71;
+            --accent-tertiary: #9b59b6; /* For Recovery */
+            --accent-danger: #e74c3c;
+            --border-color: #313154;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        /* --- Welcome Screen --- */
+        .welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-dark);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease-out 2.5s, visibility 1s ease-out 2.5s;
+            opacity: 1; visibility: visible;
+        }
+        .welcome-screen.hidden { opacity: 0; visibility: hidden; }
+        .logo-container { opacity: 0; transform: scale(0.5); animation: logo-fade-in 1.5s forwards; }
+        .welcome-logo { width: 120px; height: 120px; margin-bottom: 20px; }
+        .welcome-title { font-size: 3rem; color: #fff; text-shadow: 0 0 15px var(--accent-primary); opacity: 0; transform: translateY(20px); animation: title-fade-in 1.5s forwards 0.5s; }
+        @keyframes logo-fade-in { to { opacity: 1; transform: scale(1); } }
+        @keyframes title-fade-in { to { opacity: 1; transform: translateY(0); } }
+
+        .container { max-width: 900px; margin: 20px auto; padding: 20px; }
+        
+        /* --- Profile & Headers --- */
+        .profile-section { background-color: var(--primary-dark); padding: 20px; border-radius: 12px; margin-bottom: 40px; border: 1px solid var(--border-color); }
+        .profile-section h2 { margin-top: 0; margin-bottom: 20px; text-align: center; }
+        .profile-inputs { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; align-items: center; }
+        .profile-inputs input { background-color: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 15px; font-family: 'Poppins', sans-serif; font-size: 1rem; width: 200px; text-align: center; transition: border-color 0.3s; }
+        .profile-inputs input:focus { outline: none; border-color: var(--accent-primary); }
+        .grocery-link-btn {
+            background-color: var(--accent-secondary);
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .grocery-link-btn:hover { background-color: #27ae60; }
+
+        h1 { text-align: center; font-size: 2.5rem; color: #fff; margin-bottom: 30px; text-shadow: 0 0 10px var(--accent-primary); }
+        h2 { font-size: 2rem; color: var(--accent-primary); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin: 50px 0 30px; }
+        
+        /* Styles for Day Card, Food Tracker, etc. remain the same */
+        .day-card { background-color: var(--primary-dark); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; border-left: 5px solid transparent; }
+        .day-card.completed-day { border-left-color: var(--accent-secondary); opacity: 0.8; }
+        .day-card.missed-day { border-left-color: var(--accent-danger); opacity: 0.7; }
+        .day-card[data-type="recovery"] { border-left-color: var(--accent-tertiary); }
+        .day-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.3); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-header h3 { font-size: 1.5rem; color: #fff; }
+        .quote-of-the-day { font-style: italic; color: var(--text-muted); border-left: 3px solid var(--accent-primary); padding-left: 15px; margin: 20px 5px 25px 5px; font-size: 1rem; }
+        .food-toggle { background-color: var(--bg-dark); border: 1px solid var(--border-color); color: var(--accent-secondary); padding: 10px 15px; border-radius: 8px; cursor: pointer; display: block; width: 100%; text-align: left; font-family: 'Poppins', sans-serif; font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; transition: background-color 0.3s; }
+        .food-toggle:hover { background-color: #2a2a4e; }
+        .food-plan { display: none; padding: 15px; background-color: rgba(0,0,0,0.2); border-radius: 8px; }
+        .meal-list { list-style: none; padding: 0; }
+        .meal-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; }
+        .meal-item .meal-desc { flex-grow: 1; color: var(--text-light); }
+        .meal-item strong { color: var(--accent-secondary); }
+        .meal-item .meal-controls { display: flex; align-items: center; margin-left: 15px; }
+        .meal-item input[type="time"] { background-color: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 5px; padding: 5px; }
+        .exercise-list { list-style-type: none; margin-top: 20px; }
+        .exercise-item { margin-bottom: 20px; padding: 15px; border-left: 4px solid var(--accent-primary); transition: all 0.3s ease; background-color: rgba(0,0,0,0.1); border-radius: 0 8px 8px 0; }
+        .exercise-item.completed { border-left-color: var(--accent-secondary); opacity: 0.6; }
+        .exercise-item.completed .exercise-name { text-decoration: line-through; }
+        .exercise-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 10px; display: block; }
+        .custom-checkbox { display: inline-flex; align-items: center; cursor: pointer; margin: 0 10px; font-size: 0.95rem; }
+        .custom-checkbox input { display: none; }
+        .checkmark { width: 22px; height: 22px; background-color: rgba(0,0,0,0.2); border: 2px solid var(--border-color); border-radius: 5px; margin-right: 8px; position: relative; transition: all 0.2s ease; }
+        .custom-checkbox:hover .checkmark { border-color: var(--accent-primary); }
+        .custom-checkbox input:checked + .checkmark { background-color: var(--accent-primary); border-color: var(--accent-primary); }
+        .day-card[data-type="recovery"] .custom-checkbox input:checked + .checkmark, .meal-item .custom-checkbox input:checked + .checkmark { background-color: var(--accent-secondary); border-color: var(--accent-secondary); }
+        .checkmark::after { content: ''; position: absolute; display: none; left: 7px; top: 2px; width: 5px; height: 12px; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
+        .custom-checkbox input:checked + .checkmark::after { display: block; }
+        .progress-bar-container { width: 100%; background-color: var(--bg-dark); border-radius: 5px; margin-top: 20px; overflow: hidden; border: 1px solid var(--border-color); }
+        .progress-bar { width: 0%; height: 12px; background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)); border-radius: 5px; transition: width 0.5s ease-in-out; }
+        p.card-text { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 15px; }
+        .timer { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center; }
+        .timer-display { font-size: 2.5rem; font-weight: 600; color: var(--text-light); margin-bottom: 15px; }
+        .timer-controls button { background-color: var(--bg-dark); color: var(--accent-primary); border: 1px solid var(--accent-primary); padding: 8px 16px; border-radius: 5px; cursor: pointer; font-family: 'Poppins', sans-serif; margin: 0 5px; transition: background-color 0.3s, color 0.3s; }
+        .timer-controls button:hover { background-color: var(--accent-primary); color: var(--bg-dark); }
+        .day-card[data-type="recovery"] .timer-controls button { color: var(--accent-tertiary); border-color: var(--accent-tertiary); }
+        .day-card[data-type="recovery"] .timer-controls button:hover { background-color: var(--accent-tertiary); color: var(--bg-dark); }
+        .timer-controls button.pause-btn.running { background-color: var(--accent-danger); border-color: var(--accent-danger); color: var(--text-light); }
+        .missed-workouts-section { background-color: var(--primary-dark); padding: 20px; border-radius: 12px; margin-top: 40px; border: 1px solid var(--accent-danger); }
+        #missed-workouts-list { list-style-type: none; color: var(--text-muted); }
+        #missed-workouts-list li { padding: 5px 0; border-bottom: 1px solid var(--border-color); }
+        #missed-workouts-list li:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+
+    <div class="welcome-screen">
+        <div class="logo-container">
+            <svg class="welcome-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M100 25C141.421 25 175 58.5786 175 100C175 141.421 141.421 175 100 175C58.5786 175 25 141.421 25 100C25 58.5786 58.5786 25 100 25ZM100 0C44.7715 0 0 44.7715 0 100C0 155.228 44.7715 200 100 200C155.228 200 200 155.228 200 100C200 44.7715 155.228 0 100 0Z" fill="#313154"/>
+                <path d="M60 100H80L90 120L110 80L120 100H140" stroke="#00a8ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="40" y="90" width="30" height="20" rx="5" fill="#00a8ff"/>
+                <rect x="130" y="90" width="30" height="20" rx="5" fill="#00a8ff"/>
+            </svg>
+        </div>
+        <h1 class="welcome-title">Workout Tracker</h1>
+    </div>
+
+    <div class="container">
+        <div class="profile-section">
+            <h2>My Profile</h2>
+            <div class="profile-inputs">
+                <input type="text" id="userName" placeholder="Enter Your Name">
+                <input type="text" id="userWeight" placeholder="Enter Current Weight">
+                <a href="./grocery_list.html" class="grocery-link-btn">Go to Grocery List</a>
+            </div>
+        </div>
+
+        <h1>My June Health Plan</h1>
+        <section id="week1"></section>
+        <section id="week2"></section>
+        <section id="week3"></section>
+        
+        <div class="missed-workouts-section">
+            <h2>Missed Entries</h2>
+            <ul id="missed-workouts-list"></ul>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- CONFIG & SETUP ---
+        const welcomeScreen = document.querySelector('.welcome-screen');
+        setTimeout(() => { welcomeScreen.classList.add('hidden'); }, 4000);
+
+        const userNameInput = document.getElementById('userName');
+        const userWeightInput = document.getElementById('userWeight');
+        userNameInput.value = localStorage.getItem('userName') || '';
+        userWeightInput.value = localStorage.getItem('userWeight') || '';
+        userNameInput.addEventListener('input', (e) => localStorage.setItem('userName', e.target.value));
+        userWeightInput.addEventListener('input', (e) => localStorage.setItem('userWeight', e.target.value));
+
+        // --- COMBINED WORKOUT & FOOD DATA ---
+        const healthData = [
+            // Week 1
+            { week: 1, date: 'June 1st', title: 'Chest Day', type: 'strength', quote: "The only bad workout is the one that didn't happen.", exercises: [{ name: 'Bench Press', sets: 4, reps: 8 }, { name: 'Incline Dumbbell Press', sets: 3, reps: 10 }, { name: 'Dumbbell Flyes', sets: 3, reps: 12 }, { name: 'Push-ups', sets: 3, reps: 'To Failure' }], meals: { breakfast: 'Greek yogurt (1 cup) + 1/2 cup mixed berries + 1 tbsp chia seeds.', lunch: 'Large mixed green salad + 4-5 oz grilled chicken + vinaigrette.', dinner: 'Baked cod (5-6 oz) + 1 cup roasted asparagus + 1/2 cup quinoa.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+            { week: 1, date: 'June 2nd', title: 'Back Day', type: 'strength', quote: "Success isn't always about greatness. It's about consistency.", exercises: [{ name: 'Deadlifts', sets: 4, reps: 6 }, { name: 'Pull-ups / Lat Pulldowns', sets: 3, reps: 8 }, { name: 'Bent-Over Rows', sets: 3, reps: 10 }, { name: 'Face Pulls', sets: 3, reps: 15 }], meals: { breakfast: '2 scrambled eggs + 1 slice whole-grain toast + 1/4 avocado.', lunch: 'Leftover baked cod + asparagus + quinoa.', dinner: 'Turkey stir-fry (5 oz) + 2 cups veggies + 1/2 cup brown rice.', snacks: 'Optional: Small protein shake post-workout.' } },
+            { week: 1, date: 'June 3rd', title: 'Cardio & Stretching', type: 'cardio', quote: "Your body can stand almost anything. It’s your mind that you have to convince.", description: '30 minutes of moderate-intensity cardio, followed by 15 minutes of full-body stretching.', meals: { breakfast: 'Oatmeal (1/2 cup dry) + protein + banana + almond butter.', lunch: 'Salmon salad (4-5 oz) + spinach + cherry tomatoes.', dinner: 'Chicken breast (5 oz) + green beans + mashed sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+            { week: 1, date: 'June 4th', title: 'Leg Day', type: 'strength', quote: "Don't skip leg day. It's the foundation of a strong body.", exercises: [{ name: 'Barbell Squats', sets: 4, reps: 8 }, { name: 'Romanian Deadlifts', sets: 3, reps: 10 }, { name: 'Leg Press', sets: 3, reps: 12 }, { name: 'Calf Raises', sets: 4, reps: 15 }], meals: { breakfast: 'Cottage cheese (1 cup) + pineapple + flax seeds.', lunch: 'Leftover chicken + green beans + sweet potato.', dinner: 'Lentil soup (1.5 cups) + mixed greens salad.', snacks: 'Optional: Small protein shake post-workout.' } },
+            { week: 1, date: 'June 5th', title: 'Arm Day', type: 'strength', quote: "Strive for progress, not perfection.", exercises: [{ name: 'Barbell Curls', sets: 3, reps: 10 }, { name: 'Triceps Pushdowns', sets: 3, reps: 10 }, { name: 'Hammer Curls', sets: 3, reps: 12 }, { name: 'Overhead Triceps Extension', sets: 3, reps: 12 }], meals: { breakfast: 'Protein smoothie: almond milk + spinach + banana.', lunch: 'Tuna salad on whole-grain bread + carrot sticks.', dinner: 'Baked chicken thighs (5 oz) + Brussels sprouts.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+            { week: 1, date: 'June 6th', title: 'Recovery Session', type: 'recovery', quote: "Recovery is just as important as the workout itself.", description: 'Sauna or Steam room session for 15-20 minutes.', meals: { breakfast: '2 boiled eggs + 1/2 cup berries + almonds.', lunch: 'Leftover chicken + Brussels sprouts.', dinner: 'White fish (5-6 oz) + broccoli + brown rice.', snacks: 'Optional: Small protein shake post-workout.' } },
+            { week: 1, date: 'June 7th', title: 'Rest Day', type: 'rest', quote: "A day of rest is a part of your training.", description: 'Full rest. Focus on nutrition and hydration.', meals: { breakfast: 'Greek yogurt + granola + raspberries.', lunch: 'Shrimp salad (4-5 oz) + mixed greens + avocado.', dinner: 'Beef stir-fry (5 oz) + mixed vegetables + cauliflower rice.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+            // Weeks 2 & 3 would continue this combined format...
+             { week: 2, date: 'June 8th', title: 'Full Body Strength', type: 'strength', quote: "You don't have to be extreme, just consistent.", exercises: [{ name: 'Squats', sets: 3, reps: 10 }, { name: 'Bench Press', sets: 3, reps: 10 }, { name: 'Rows', sets: 3, reps: 10 }], meals: { breakfast: '2 scrambled eggs + black beans + salsa.', lunch: 'Leftover beef stir-fry + cauliflower rice.', dinner: 'Baked salmon (4-5 oz) + asparagus + sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+             { week: 2, date: 'June 9th', title: 'HIIT Cardio', type: 'cardio', quote: "If it doesn't challenge you, it doesn't change you.", description: '20 minutes of High-Intensity Interval Training.', meals: { breakfast: 'Oatmeal + protein + walnuts + blueberries.', lunch: 'Chicken salad + chickpeas + balsamic vinaigrette.', dinner: 'Turkey meatballs (5 oz) + zucchini noodles + sauce.', snacks: 'Optional: Small protein shake post-workout.' } },
+             { week: 2, date: 'June 10th', title: 'Chest & Back (Supersets)', type: 'strength', quote: "Push yourself because no one else is going to do it for you.", exercises: [{ name: 'Incline Press + T-Bar Row', sets: 3, reps: 10 }, { name: 'Push-ups + Dumbbell Pullovers', sets: 3, reps: 12 }], meals: { breakfast: 'Greek yogurt + mixed berries + flax seeds.', lunch: 'Leftover turkey meatballs + zucchini noodles.', dinner: 'Chicken breast (5 oz) + roasted vegetables.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+        ];
+
+        // The rest of the JavaScript remains the same, no changes needed to its logic.
+        // It will dynamically create the cards as before.
+        healthData.forEach(day => {
+            const section = document.getElementById(`week${day.week}`);
+            if (!section) return;
+
+            const cardId = `day-${day.date.replace(/ /g, '-')}`;
+            let cardContent = '';
+
+            if (day.quote) cardContent += `<p class="quote-of-the-day">“${day.quote}”</p>`;
+            
+            if (day.meals) {
+                cardContent += `<button class="food-toggle">Food Plan</button><div class="food-plan"><ul class="meal-list">`;
+                for (const mealType of ['breakfast', 'lunch', 'dinner', 'snacks']) {
+                    if (day.meals[mealType]) {
+                        const mealId = `${cardId}-meal-${mealType}`;
+                        cardContent += `
+                            <li class="meal-item">
+                                <span class="meal-desc"><strong>${mealType.charAt(0).toUpperCase() + mealType.slice(1)}:</strong> ${day.meals[mealType]}</span>
+                                <div class="meal-controls">
+                                    <input type="time" id="${mealId}-time">
+                                    <label class="custom-checkbox"><input type="checkbox" id="${mealId}-check"><span class="checkmark"></span></label>
+                                </div>
+                            </li>`;
+                    }
+                }
+                cardContent += `</ul></div>`;
+            }
+
+            if (day.description) cardContent += `<p class="card-text">${day.description}</p>`;
+
+            if (day.type === 'strength' && day.exercises && day.exercises.length > 0) {
+                cardContent += '<ul class="exercise-list">';
+                day.exercises.forEach((ex) => {
+                    const exerciseId = `${cardId}-${ex.name.replace(/\s+/g, '-').toLowerCase()}`;
+                    cardContent += `<li class="exercise-item"><span class="exercise-name">${ex.name} (${ex.sets} sets of ${ex.reps})</span>`;
+                    for (let i = 1; i <= ex.sets; i++) {
+                        cardContent += `<label class="custom-checkbox"><input type="checkbox" id="${exerciseId}-set${i}"><span class="checkmark"></span>Set ${i}</label>`;
+                    }
+                    cardContent += '</li>';
+                });
+                cardContent += '</ul><div class="progress-bar-container"><div class="progress-bar"></div></div>';
+            } else if (day.type !== 'strength') {
+                cardContent += `<label class="custom-checkbox" style="font-size: 1.1rem; margin-top: 15px;"><input type="checkbox" id="${cardId}-completed"><span class="checkmark"></span>Mark as Completed</label>`;
+            }
+            
+            const timerHtml = `<div class="timer"><div class="timer-display">00:00:00</div><div class="timer-controls"><button class="start-btn">Start</button><button class="pause-btn">Pause</button><button class="reset-btn">Reset</button></div></div>`;
+            
+            const card = document.createElement('div');
+            card.className = 'day-card';
+            card.id = cardId;
+            card.dataset.date = day.date;
+            card.dataset.type = day.type;
+            card.innerHTML = `<div class="card-header"><h3>${day.date}: ${day.title}</h3></div><div class="card-body">${cardContent}</div>${timerHtml}`;
+            section.appendChild(card);
+        });
+
+        document.querySelectorAll('.food-toggle').forEach(button => {
+            button.addEventListener('click', () => {
+                const content = button.nextElementSibling;
+                content.style.display = content.style.display === 'block' ? 'none' : 'block';
+            });
+        });
+
+        document.querySelectorAll('input[type="checkbox"], input[type="time"]').forEach(input => {
+            const savedState = localStorage.getItem(input.id);
+            if (input.type === 'checkbox' && savedState === 'true') input.checked = true;
+            if (input.type === 'time' && savedState) input.value = savedState;
+            
+            input.addEventListener('change', function() {
+                const valueToSave = input.type === 'checkbox' ? this.checked : this.value;
+                localStorage.setItem(this.id, valueToSave);
+                if(input.type === 'checkbox') updateCardState(this.closest('.day-card'));
+            });
+        });
+        
+        document.querySelectorAll('.day-card').forEach(card => {
+            updateCardState(card);
+            initializeTimer(card);
+        });
+
+        function updateCardState(card) {
+            if (!card) return;
+            const progressBar = card.querySelector('.progress-bar');
+            if (progressBar) {
+                const exCheckboxes = card.querySelectorAll('.exercise-item input[type="checkbox"]');
+                const checkedCount = card.querySelectorAll('.exercise-item input[type="checkbox"]:checked').length;
+                progressBar.style.width = exCheckboxes.length > 0 ? (checkedCount / exCheckboxes.length) * 100 + '%' : '0%';
+                exCheckboxes.forEach(cb => {
+                    const item = cb.closest('.exercise-item');
+                    const allSets = item.querySelectorAll('input[type="checkbox"]');
+                    item.classList.toggle('completed', Array.from(allSets).every(set => set.checked));
+                });
+            }
+            
+            const allCheckboxesInCard = card.querySelectorAll('.custom-checkbox input');
+            card.classList.toggle('completed-day', Array.from(allCheckboxesInCard).every(cb => cb.checked));
+            checkMissedWorkouts();
+        }
+
+        function initializeTimer(card) {
+            const timerDisplay = card.querySelector('.timer-display');
+            const startBtn = card.querySelector('.start-btn');
+            const pauseBtn = card.querySelector('.pause-btn');
+            const resetBtn = card.querySelector('.reset-btn');
+            const timerId = `timer-${card.id}`;
+            let timerInterval;
+            let elapsedTime = parseInt(localStorage.getItem(timerId) || '0');
+            let isRunning = false;
+            
+            const formatTime = (seconds) => {
+                const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+                const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+                const s = (seconds % 60).toString().padStart(2, '0');
+                return `${h}:${m}:${s}`;
+            }
+            
+            timerDisplay.textContent = formatTime(elapsedTime);
+
+            startBtn.addEventListener('click', () => { if (isRunning) return; isRunning = true; pauseBtn.classList.add('running'); pauseBtn.textContent = 'Pause'; timerInterval = setInterval(() => { elapsedTime++; timerDisplay.textContent = formatTime(elapsedTime); localStorage.setItem(timerId, elapsedTime); }, 1000); });
+            pauseBtn.addEventListener('click', () => { if (!isRunning) return; isRunning = false; pauseBtn.classList.remove('running'); pauseBtn.textContent = 'Resume'; clearInterval(timerInterval); });
+            resetBtn.addEventListener('click', () => { isRunning = false; clearInterval(timerInterval); elapsedTime = 0; timerDisplay.textContent = formatTime(elapsedTime); localStorage.setItem(timerId, elapsedTime); pauseBtn.classList.remove('running'); pauseBtn.textContent = 'Pause'; });
+        }
+        
+        const missedWorkoutsList = document.getElementById('missed-workouts-list');
+        function checkMissedWorkouts() {
+            missedWorkoutsList.innerHTML = '';
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            
+            document.querySelectorAll('.day-card').forEach(card => {
+                const workoutDate = new Date(`${card.dataset.date}, ${currentYear}`);
+                const isMissed = (workoutDate < today.setHours(0,0,0,0)) && !card.classList.contains('completed-day');
+                card.classList.toggle('missed-day', isMissed);
+                
+                if (isMissed) {
+                    const li = document.createElement('li');
+                    li.textContent = `${card.dataset.date}: ${card.querySelector('h3').textContent.split(': ')[1]}`;
+                    missedWorkoutsList.appendChild(li);
+                }
+            });
+            if(missedWorkoutsList.children.length === 0) {
+                 const li = document.createElement('li');
+                 li.textContent = "No missed entries. Great job!";
+                 missedWorkoutsList.appendChild(li);
+            }
+        }
+        checkMissedWorkouts();
+    });
+    </script>
+</body>
+</html>
