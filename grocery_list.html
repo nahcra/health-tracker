@@ -1,258 +1,266 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Grocery List</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
- HEAD
-<script src="firebase-config.js"></script>
- a1bee041b92d216470e7cef9500935e70b1365ed
-        :root {
-            --bg-dark: #1a1a2e;
-            --primary-dark: #1f1f38;
-            --text-light: #e0e0e0;
-            --text-muted: #8c8c9a;
-            --accent-primary: #00a8ff;
-            --accent-secondary: #2ecc71;
-            --accent-danger: #e74c3c;
-            --border-color: #313154;
+78% of storage used … If you run out, you can't create, edit, and upload files.
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if Firebase is available
+    if (typeof firebase === 'undefined' || typeof firebase.auth === 'undefined' || typeof firebase.firestore === 'undefined') {
+        console.error("Firebase SDKs not loaded correctly for grocery_list.html. Ensure firebase-config.js is first, then firebase-app.js, firebase-auth.js, and firebase-firestore.js in your HTML head.");
+        document.body.innerHTML = "<p style='color:white; text-align:center; padding-top: 50px;'>Error: Application cannot start. Firebase not loaded. Please check console.</p>";
+        return;
+    }
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let currentUserId = null;
+
+    // DOM Elements for grocery list
+    const listContainer = document.getElementById('full-grocery-list');
+    const newItemInput = document.getElementById('newItemInput');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const clearCheckedBtn = document.getElementById('clearCheckedBtn');
+    const findDealsBtn = document.getElementById('findDealsBtn');
+    const dealsContainer = document.getElementById('deals-container');
+
+    // Hide parts of the page initially until auth check is complete
+    const mainContentContainer = document.querySelector('.container > .deals-section, .container > .add-item-form, .container > #full-grocery-list, .container > .controls');
+    if(mainContentContainer) { // Simple way to hide, or use a wrapper div
+       // For simplicity, let's assume the whole body will be shown/hidden based on auth,
+       // but a more granular approach might be needed if there are non-auth elements.
+    }
+    document.body.style.visibility = 'hidden'; // Hide body initially
+
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            currentUserId = user.uid;
+            console.log("Grocery List: User logged in:", currentUserId);
+            document.body.style.visibility = 'visible'; // Show content
+            await loadGroceryDataFromFirestore(); 
+        } else {
+            currentUserId = null;
+            console.log("Grocery List: User not logged in, redirecting to auth.html");
+            // Ensure auth.html is in the same directory or provide correct path
+            window.location.replace('./auth.html'); 
+        }
+    });
+
+    const predefinedGroceryData = { // Renamed to avoid conflict if groceryData is used elsewhere
+        "Produce": ["Mixed Berries", "Chia Seeds", "Avocado", "Asparagus", "Mixed Greens / Spinach", "Cherry Tomatoes", "Banana", "Onion & Garlic", "Pineapple", "Green Beans", "Sweet Potato", "Carrots", "Brussels Sprouts", "Broccoli", "Cauliflower", "Zucchini"],
+        "Protein (Meat & Seafood)": ["Chicken (breasts & thighs)", "Cod (or other white fish)", "Turkey", "Salmon", "Tuna (canned)", "Shrimp", "Beef", "Eggs"],
+        "Dairy & Alternatives": ["Greek Yogurt", "Cottage Cheese", "Almond Milk"],
+        "Pantry (Grains, Nuts, Seeds, etc.)": ["Quinoa", "Whole-grain Toast / Bread", "Brown Rice", "Oats", "Lentils", "Almond Butter", "Flax Seeds", "Almonds / Walnuts", "Granola", "Chickpeas", "Black Beans"],
+        "Miscellaneous": ["Protein Powder (optional)", "Vinaigrette Dressing", "Herbal Tea", "Salsa", "Tomato Sauce", "Spices (as needed)"]
+    };
+
+    async function loadGroceryDataFromFirestore() {
+        if (!currentUserId) { 
+            renderList([], {}); // Render with empty data if no user (should be redirected anyway)
+            return;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        let customItems = [];
+        let checkedItemsData = {};
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            line-height: 1.6;
+        try {
+            const customItemsDocRef = db.collection('users').doc(currentUserId).collection('groceryData').doc('customItems');
+            const customItemsSnap = await customItemsDocRef.get();
+            if (customItemsSnap.exists() && customItemsSnap.data().items) {
+                customItems = customItemsSnap.data().items;
+            }
+
+            const checkedItemsDocRef = db.collection('users').doc(currentUserId).collection('groceryData').doc('checkedStates');
+            const checkedItemsSnap = await checkedItemsDocRef.get();
+            if (checkedItemsSnap.exists()) {
+                checkedItemsData = checkedItemsSnap.data();
+            }
+            console.log("Grocery data loaded from Firestore:", { customItems, checkedItemsData });
+        } catch (error) {
+            console.error("Error loading grocery data from Firestore:", error);
+        }
+        renderList(customItems, checkedItemsData);
+    }
+
+    async function saveCustomGroceryItemsToFirestore(itemsArray) {
+        if (!currentUserId) return;
+        try {
+            await db.collection('users').doc(currentUserId).collection('groceryData').doc('customItems').set({ items: itemsArray });
+            console.log("Custom grocery items saved to Firestore.");
+        } catch (error) {
+            console.error("Error saving custom grocery items to Firestore:", error);
+        }
+    }
+
+    async function saveCheckedStateToFirestore(itemId, isChecked) {
+        if (!currentUserId) return;
+        try {
+            const checkedItemsDocRef = db.collection('users').doc(currentUserId).collection('groceryData').doc('checkedStates');
+            await checkedItemsDocRef.set({ [itemId]: isChecked }, { merge: true });
+            // console.log(`Checked state saved for ${itemId}: ${isChecked}`); // Optional: for less console noise
+        } catch (error) {
+            console.error("Error saving checked state for " + itemId + " to Firestore:", error);
+        }
+    }
+
+    function renderList(customItemsArray = [], checkedItemsMap = {}) {
+        if (!listContainer) {
+            console.error("Grocery list container not found in HTML.");
+            return;
+        }
+        listContainer.innerHTML = ''; 
+        
+        let itemsRendered = false;
+
+        for (const category in predefinedGroceryData) {
+            itemsRendered = true;
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'grocery-category';
+            categoryDiv.innerHTML = `<h2>${category}</h2>`;
+            const list = document.createElement('ul');
+            list.className = 'grocery-list';
+            predefinedGroceryData[category].forEach(item => {
+                const itemId = `grocery-${category.replace(/[\s()']/g, '-')}-${item.replace(/[\s()']/g, '-')}`; // Sanitize ID
+                list.appendChild(createGroceryItem(item, itemId, checkedItemsMap[itemId] || false));
+            });
+            categoryDiv.appendChild(list);
+            listContainer.appendChild(categoryDiv);
         }
 
-        .container { max-width: 900px; margin: 20px auto; padding: 20px; }
+        if (customItemsArray.length > 0) {
+            itemsRendered = true;
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'grocery-category';
+            categoryDiv.innerHTML = `<h2>My Added Items</h2>`;
+            const list = document.createElement('ul');
+            list.className = 'grocery-list';
+            customItemsArray.forEach(item => {
+                const itemId = `grocery-Custom-${item.replace(/[\s()']/g, '-')}`; // Sanitize ID
+                list.appendChild(createGroceryItem(item, itemId, checkedItemsMap[itemId] || false));
+            });
+            categoryDiv.appendChild(list);
+            listContainer.appendChild(categoryDiv);
+        }
         
-        .header { text-align: center; margin-bottom: 40px; }
-        .header h1 { font-size: 2.5rem; color: #fff; text-shadow: 0 0 10px var(--accent-secondary); }
-        .back-link { display: inline-block; color: var(--accent-primary); text-decoration: none; font-weight: 600; margin-top: 15px; transition: color 0.3s; }
-        .back-link:hover { color: #fff; }
-
-        .add-item-form { display: flex; gap: 10px; margin-bottom: 30px; }
-        .add-item-form input[type="text"] { flex-grow: 1; background-color: var(--primary-dark); border: 1px solid var(--border-color); color: var(--text-light); padding: 12px 15px; border-radius: 8px; font-size: 1rem; }
-        .add-item-form button { background-color: var(--accent-primary); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.3s; }
-        .add-item-form button:hover { background-color: #007bb5; }
+        if (!itemsRendered && customItemsArray.length === 0) { // If no predefined items and no custom items
+             listContainer.innerHTML = "<p style='text-align:center; color: var(--text-muted);'>Your grocery list is currently empty. Use the field above to add items.</p>";
+        }
+    }
+    
+    function createGroceryItem(itemName, itemId, isCheckedInitially) {
+        const li = document.createElement('li');
+        li.className = 'grocery-item';
+        if (isCheckedInitially) {
+            li.classList.add('checked');
+        }
         
-        .grocery-category, .deals-section { margin-bottom: 30px; }
-        .grocery-category h2, .deals-section h2 { font-size: 1.8rem; color: var(--accent-primary); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px; }
+        li.innerHTML = `
+            <label class="custom-checkbox">
+                <input type="checkbox" id="${itemId}" ${isCheckedInitially ? 'checked' : ''}>
+                <span class="checkmark"></span>
+            </label>
+            <span class="item-name">${itemName}</span>
+        `;
         
-        .grocery-list { list-style: none; padding: 0; }
-        .grocery-item { background-color: var(--primary-dark); padding: 15px 20px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; transition: opacity 0.3s; }
-        .grocery-item.checked { opacity: 0.5; }
-        .grocery-item.checked .item-name { text-decoration: line-through; }
-        .item-name { flex-grow: 1; font-size: 1.1rem; }
+        const checkbox = li.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            li.classList.toggle('checked', isChecked);
+            saveCheckedStateToFirestore(this.id, isChecked);
+        });
+        return li;
+    }
 
-        .custom-checkbox { display: inline-flex; align-items: center; cursor: pointer; }
-        .custom-checkbox input { display: none; }
-        .checkmark { min-width: 24px; height: 24px; background-color: var(--bg-dark); border: 2px solid var(--border-color); border-radius: 5px; margin-right: 15px; position: relative; transition: all 0.2s ease; }
-        .custom-checkbox:hover .checkmark { border-color: var(--accent-secondary); }
-        .custom-checkbox input:checked + .checkmark { background-color: var(--accent-secondary); border-color: var(--accent-secondary); }
-        .checkmark::after { content: ''; position: absolute; display: none; left: 8px; top: 4px; width: 5px; height: 12px; border: solid white; border-width: 0 3px 3px 0; transform: rotate(45deg); }
-        .custom-checkbox input:checked + .checkmark::after { display: block; }
+    async function addCustomItem() {
+        const itemName = newItemInput.value.trim();
+        if (itemName === '' || !currentUserId) return;
 
-        /* --- Deals Section --- */
-        #findDealsBtn { display: block; width: 100%; padding: 15px; font-size: 1.2rem; font-weight: 600; background-color: var(--accent-tertiary); color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; margin-bottom: 20px; }
-        #findDealsBtn:hover { background-color: #8e44ad; }
-        #deals-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
-        .deal-card { background-color: var(--primary-dark); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; }
-        .deal-card h3 { color: var(--accent-secondary); margin-top: 0; }
-        .deal-card p { margin: 5px 0 0 0; color: var(--text-muted); }
+        let customItems = [];
+        try {
+            const customItemsDocRef = db.collection('users').doc(currentUserId).collection('groceryData').doc('customItems');
+            const docSnap = await customItemsDocRef.get();
+            if (docSnap.exists() && docSnap.data().items) {
+                customItems = docSnap.data().items;
+            }
+        } catch (e) {
+            console.error("Error fetching current custom items:", e);
+        }
 
-        .controls { text-align: center; margin-top: 40px; }
-        .clear-btn { background-color: var(--accent-danger); color: #fff; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.3s; }
-        .clear-btn:hover { background-color: #c0392b; }
-
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <div class="header">
-            <h1>My Grocery List</h1>
-            <a href="./WORKOUT%20APP.HTML" class="back-link">&larr; Back to Tracker</a>
-        </div>
-
-        <div class="deals-section">
-            <h2>Nearby Deals</h2>
-            <button id="findDealsBtn">Find Deals Near Me</button>
-            <div id="deals-container">
-                </div>
-        </div>
-
-        <div class="add-item-form">
-            <input type="text" id="newItemInput" placeholder="Add a custom item...">
-            <button id="addItemBtn">Add Item</button>
-        </div>
-
-        <div id="full-grocery-list">
-            </div>
-
-        <div class="controls">
-            <button class="clear-btn" id="clearCheckedBtn">Clear Checked Items</button>
-        </div>
-    </div>
-
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const groceryData = {
-            "Produce": ["Mixed Berries", "Chia Seeds", "Avocado", "Asparagus", "Mixed Greens / Spinach", "Cherry Tomatoes", "Banana", "Onion & Garlic", "Pineapple", "Green Beans", "Sweet Potato", "Carrots", "Brussels Sprouts", "Broccoli", "Cauliflower", "Zucchini"],
-            "Protein (Meat & Seafood)": ["Chicken (breasts & thighs)", "Cod (or other white fish)", "Turkey", "Salmon", "Tuna (canned)", "Shrimp", "Beef", "Eggs"],
-            "Dairy & Alternatives": ["Greek Yogurt", "Cottage Cheese", "Almond Milk"],
-            "Pantry (Grains, Nuts, Seeds, etc.)": ["Quinoa", "Whole-grain Toast / Bread", "Brown Rice", "Oats", "Lentils", "Almond Butter", "Flax Seeds", "Almonds / Walnuts", "Granola", "Chickpeas", "Black Beans"],
-            "Miscellaneous": ["Protein Powder (optional)", "Vinaigrette Dressing", "Herbal Tea", "Salsa", "Tomato Sauce", "Spices (as needed)"]
-        };
-
-        const listContainer = document.getElementById('full-grocery-list');
-        const newItemInput = document.getElementById('newItemInput');
-        const addItemBtn = document.getElementById('addItemBtn');
-        const clearCheckedBtn = document.getElementById('clearCheckedBtn');
-        const findDealsBtn = document.getElementById('findDealsBtn');
-        const dealsContainer = document.getElementById('deals-container');
-
-        // --- Deals Feature ---
+        if (!customItems.includes(itemName)) {
+            customItems.push(itemName);
+            await saveCustomGroceryItemsToFirestore(customItems);
+            // For re-render, fetch current checked states to pass them along
+            let checkedItemsData = {};
+            try {
+                 const checkedItemsDocRef = db.collection('users').doc(currentUserId).collection('groceryData').doc('checkedStates');
+                 const checkedSnap = await checkedItemsDocRef.get();
+                 if (checkedSnap.exists()) checkedItemsData = checkedSnap.data();
+            } catch (e) { console.error("Error fetching checked states for re-render:", e); }
+            renderList(customItems, checkedItemsData);
+        }
+        newItemInput.value = '';
+    }
+    
+    if(addItemBtn) addItemBtn.addEventListener('click', addCustomItem);
+    if(newItemInput) newItemInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomItem(); } });
+    
+    if(clearCheckedBtn) {
+        clearCheckedBtn.addEventListener('click', async () => {
+            if (!currentUserId || !confirm('Are you sure you want to clear all checked items from your online list? This cannot be undone.')) return;
+            
+            try {
+                await db.collection('users').doc(currentUserId).collection('groceryData').doc('checkedStates').set({}); // Set to empty object
+                console.log("Checked states cleared from Firestore.");
+                // Re-render the list, which will now show all items unchecked
+                let customItems = []; // Need to fetch custom items again to pass to renderList
+                const customItemsDocRef = db.collection('users').doc(currentUserId).collection('groceryData').doc('customItems');
+                const docSnap = await customItemsDocRef.get();
+                if (docSnap.exists() && docSnap.data().items) customItems = docSnap.data().items;
+                renderList(customItems, {}); // Pass empty checkedItemsMap
+            } catch (error) {
+                console.error("Error clearing checked items from Firestore:", error);
+            }
+        });
+    }
+    
+    // --- Deals Feature (Simulated) ---
+    if (findDealsBtn) {
         findDealsBtn.addEventListener('click', () => {
             if (!navigator.geolocation) {
                 alert("Geolocation is not supported by your browser.");
                 return;
             }
-
             findDealsBtn.textContent = "Finding deals...";
             findDealsBtn.disabled = true;
-
-            navigator.geolocation.getCurrentPosition(success, error);
+            navigator.geolocation.getCurrentPosition(successGeo, errorGeo);
         });
+    }
 
-        function success(position) {
-            // In a real application, you would use position.coords.latitude and position.coords.longitude
-            // to query a real deals API. Since we don't have one, we will simulate the result.
-            dealsContainer.innerHTML = ''; // Clear previous deals
-            
-            const simulatedDeals = [
-                { store: 'Fortinos', item: 'Chicken Breast', price: '$1.99/lb' },
-                { store: 'Food Basics', item: 'Avocados', price: '5 for $4.00' },
-                { store: 'Sobeys', item: 'Greek Yogurt', price: '$4.99' },
-                { store: 'Walmart', item: 'Salmon Fillets', price: '$9.97/lb' },
-                { store: 'NoFrills', item: 'Mixed Berries (Frozen)', price: '2 for $7.00' },
-                { store: 'Costco', item: 'Almond Milk (Case)', price: '$9.89' },
-            ];
-            
-            simulatedDeals.forEach(deal => {
-                const dealCard = document.createElement('div');
-                dealCard.className = 'deal-card';
-                dealCard.innerHTML = `<h3>${deal.item}</h3><p><strong>Store:</strong> ${deal.store}</p><p><strong>Price:</strong> ${deal.price}</p>`;
-                dealsContainer.appendChild(dealCard);
-            });
-            
+    function successGeo(position) {
+        if (!dealsContainer) return;
+        dealsContainer.innerHTML = ''; 
+        const simulatedDeals = [
+            { store: 'Fortinos', item: 'Chicken Breast', price: '$1.99/lb' },
+            { store: 'Food Basics', item: 'Avocados', price: '5 for $4.00' },
+            { store: 'Sobeys', item: 'Greek Yogurt', price: '$4.99' },
+            { store: 'Walmart', item: 'Salmon Fillets', price: '$9.97/lb' },
+            { store: 'NoFrills', item: 'Mixed Berries (Frozen)', price: '2 for $7.00' },
+            { store: 'Costco (Membership)', item: 'Almond Milk (Case)', price: '$9.89' },
+        ];
+        simulatedDeals.forEach(deal => {
+            const dealCard = document.createElement('div');
+            dealCard.className = 'deal-card';
+            dealCard.innerHTML = `<h3>${deal.item}</h3><p><strong>Store:</strong> ${deal.store}</p><p><strong>Price:</strong> ${deal.price}</p>`;
+            dealsContainer.appendChild(dealCard);
+        });
+        if(findDealsBtn) {
             findDealsBtn.textContent = "Find Deals Near Me";
             findDealsBtn.disabled = false;
         }
+    }
 
-        function error() {
-            alert("Unable to retrieve your location. Please ensure location services are enabled for your browser.");
+    function errorGeo() {
+        alert("Unable to retrieve your location. Please ensure location services are enabled for your browser.");
+        if(findDealsBtn) {
             findDealsBtn.textContent = "Find Deals Near Me";
             findDealsBtn.disabled = false;
         }
-
-        // --- Grocery List Logic ---
-        function renderList() {
-            listContainer.innerHTML = '';
-            
-            for (const category in groceryData) {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'grocery-category';
-                categoryDiv.innerHTML = `<h2>${category}</h2>`;
-                const list = document.createElement('ul');
-                list.className = 'grocery-list';
-                groceryData[category].forEach(item => { list.appendChild(createGroceryItem(item, category)); });
-                categoryDiv.appendChild(list);
-                listContainer.appendChild(categoryDiv);
-            }
-
-            const customItems = JSON.parse(localStorage.getItem('customGroceryItems')) || [];
-            if (customItems.length > 0) {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'grocery-category';
-                categoryDiv.innerHTML = `<h2>My Added Items</h2>`;
-                const list = document.createElement('ul');
-                list.className = 'grocery-list';
-                customItems.forEach(item => { list.appendChild(createGroceryItem(item, 'Custom')); });
-                categoryDiv.appendChild(list);
-                listContainer.appendChild(categoryDiv);
-            }
-
-            document.querySelectorAll('.grocery-item input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', handleCheckboxChange);
-            });
-        }
-        
-        function createGroceryItem(itemName, category) {
-            const itemId = `grocery-${category.replace(/\s+/g, '-')}-${itemName.replace(/\s+/g, '-')}`;
-            const li = document.createElement('li');
-            li.className = 'grocery-item';
-            li.id = `li-${itemId}`;
-            const isChecked = localStorage.getItem(itemId) === 'true';
-            if (isChecked) li.classList.add('checked');
-            li.innerHTML = `<label class="custom-checkbox"><input type="checkbox" id="${itemId}" ${isChecked ? 'checked' : ''}><span class="checkmark"></span></label><span class="item-name">${itemName}</span>`;
-            return li;
-        }
-
-        function handleCheckboxChange(e) {
-            const checkbox = e.target;
-            localStorage.setItem(checkbox.id, checkbox.checked);
-            document.getElementById(`li-${checkbox.id}`).classList.toggle('checked', checkbox.checked);
-        }
-
-        function addCustomItem() {
-            const itemName = newItemInput.value.trim();
-            if (itemName === '') return;
-            let customItems = JSON.parse(localStorage.getItem('customGroceryItems')) || [];
-            if (!customItems.includes(itemName)) {
-                customItems.push(itemName);
-                localStorage.setItem('customGroceryItems', JSON.stringify(customItems));
-                renderList();
-            }
-            newItemInput.value = '';
-        }
-
-        function clearCheckedItems() {
-            if (!confirm('Are you sure you want to clear all checked items? This cannot be undone.')) return;
-            
-            document.querySelectorAll('.grocery-item input[type="checkbox"]').forEach(checkbox => {
-                if (checkbox.checked) localStorage.removeItem(checkbox.id);
-            });
-
-            let customItems = JSON.parse(localStorage.getItem('customGroceryItems')) || [];
-            const itemsToKeep = [];
-            customItems.forEach(item => {
-                const itemId = `grocery-Custom-${item.replace(/\s+/g, '-')}`;
-                if (localStorage.getItem(itemId) !== 'true') {
-                    itemsToKeep.push(item);
-                } else {
-                    localStorage.removeItem(itemId);
-                }
-            });
-            localStorage.setItem('customGroceryItems', JSON.stringify(itemsToKeep));
-            renderList();
-        }
-
-        addItemBtn.addEventListener('click', addCustomItem);
-        newItemInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addCustomItem(); });
-        clearCheckedBtn.addEventListener('click', clearCheckedItems);
-
-        renderList();
-    });
-    </script>
-</body>
- HEAD
-</html>
-a1bee041b92d216470e7cef9500935e70b1365ed
+    }
+});
+</script>
