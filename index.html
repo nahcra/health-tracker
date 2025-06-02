@@ -11,7 +11,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-    <style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script> <style>
         /* CSS Variables */
         :root {
             --bg-dark: #1a1a2e;
@@ -146,12 +146,16 @@
             </div>
         </div>
 
-        <h1>My Health Plan</h1> <div style="text-align: center; margin-bottom: 20px;">
+        <h1>My Health Plan</h1> 
+        
+        <div style="text-align: center; margin-bottom: 20px;">
             <label for="startDatePicker" style="font-size: 1.2rem; margin-right: 10px;">Plan Starts On:</label>
             <input type="date" id="startDatePicker" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: var(--primary-dark); color: var(--text-light);">
         </div>
 
-        <section id="health-plan-container"></section> <div class="missed-workouts-section">
+        <section id="health-plan-container"></section> 
+        
+        <div class="missed-workouts-section">
             <h2>Missed Entries</h2>
             <ul id="missed-workouts-list"></ul>
         </div>
@@ -172,8 +176,12 @@
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         const analytics = firebase.analytics();
-        // You can now access `app` and `analytics` globally within your main script
-        // If using Firestore: const db = firebase.firestore();
+        const db = firebase.firestore(); // Initialize Firestore
+        
+        // Define a user ID for data storage.
+        // For multiple users, you'd integrate Firebase Authentication here.
+        // For now, we'll use a simple, static ID.
+        const USER_ID = 'default_user_profile'; // You could make this dynamic with auth later
     </script>
 
     <script>
@@ -184,34 +192,104 @@
 
         const userNameInput = document.getElementById('userName');
         const userWeightInput = document.getElementById('userWeight');
-        userNameInput.value = localStorage.getItem('userName') || '';
-        userWeightInput.value = localStorage.getItem('userWeight') || '';
-        userNameInput.addEventListener('input', (e) => localStorage.setItem('userName', e.target.value));
-        userWeightInput.addEventListener('input', (e) => localStorage.setItem('userWeight', e.target.value));
-
-        // --- DYNAMIC DATE ADJUSTMENT SETUP ---
         const startDatePicker = document.getElementById('startDatePicker');
         const healthPlanContainer = document.getElementById('health-plan-container');
-
-        // Store selected start date in localStorage
-        const savedStartDate = localStorage.getItem('planStartDate');
-        if (savedStartDate) {
-            startDatePicker.value = savedStartDate;
-        } else {
-            // Set default start date to today if none saved
-            const today = new Date();
-            startDatePicker.valueAsDate = today;
-            localStorage.setItem('planStartDate', today.toISOString().split('T')[0]);
+        const missedWorkoutsList = document.getElementById('missed-workouts-list');
+        
+        // --- FIREBASE DATA FUNCTIONS ---
+        // Save profile data to Firestore
+        async function saveProfileData(name, weight) {
+            try {
+                await db.collection('users').doc(USER_ID).set({
+                    userName: name,
+                    userWeight: weight,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true }); // Use merge to avoid overwriting other fields
+                console.log("Profile data saved to Firebase.");
+            } catch (e) {
+                console.error("Error saving profile data: ", e);
+            }
         }
 
-        // Event listener for when the user changes the start date
-        startDatePicker.addEventListener('change', function() {
+        // Load profile data from Firestore
+        async function loadProfileData() {
+            try {
+                const doc = await db.collection('users').doc(USER_ID).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    userNameInput.value = data.userName || '';
+                    userWeightInput.value = data.userWeight || '';
+                } else {
+                    console.log("No profile data found for this user.");
+                }
+            } catch (e) {
+                console.error("Error loading profile data: ", e);
+            }
+        }
+
+        // Save individual card state (checkboxes, timer) to Firestore
+        async function saveCardStateToFirestore(cardId, data) {
+            try {
+                await db.collection('users').doc(USER_ID).collection('daily_entries').doc(cardId).set(data, { merge: true });
+                console.log(`Card state for ${cardId} saved.`);
+            } catch (e) {
+                console.error(`Error saving card state for ${cardId}: `, e);
+            }
+        }
+
+        // Load individual card state from Firestore
+        async function loadCardStateFromFirestore(cardId) {
+            try {
+                const doc = await db.collection('users').doc(USER_ID).collection('daily_entries').doc(cardId).get();
+                if (doc.exists) {
+                    return doc.data();
+                }
+            } catch (e) {
+                console.error(`Error loading card state for ${cardId}: `, e);
+            }
+            return null;
+        }
+
+        // --- INITIAL LOAD & EVENT LISTENERS ---
+        loadProfileData(); // Load profile on startup
+
+        userNameInput.addEventListener('input', (e) => saveProfileData(e.target.value, userWeightInput.value));
+        userWeightInput.addEventListener('input', (e) => saveProfileData(userNameInput.value, e.target.value));
+
+        // Store selected start date in Firestore and localStorage
+        async function setAndLoadStartDate() {
+            let savedStartDate = localStorage.getItem('planStartDate');
+            // Try loading from Firestore first
+            try {
+                const doc = await db.collection('users').doc(USER_ID).get();
+                if (doc.exists && doc.data().planStartDate) {
+                    savedStartDate = doc.data().planStartDate;
+                }
+            } catch (e) {
+                console.error("Error loading start date from Firestore: ", e);
+            }
+
+            if (savedStartDate) {
+                startDatePicker.value = savedStartDate;
+            } else {
+                const today = new Date();
+                const todayISO = today.toISOString().split('T')[0];
+                startDatePicker.valueAsDate = today;
+                localStorage.setItem('planStartDate', todayISO); // Also keep local for quick access
+                await db.collection('users').doc(USER_ID).set({ planStartDate: todayISO }, { merge: true });
+            }
+            renderHealthPlan();
+        }
+
+        setAndLoadStartDate(); // Call on DOMContentLoaded
+
+        startDatePicker.addEventListener('change', async function() {
             localStorage.setItem('planStartDate', this.value);
+            await db.collection('users').doc(USER_ID).set({ planStartDate: this.value }, { merge: true });
             renderHealthPlan(); // Re-render the plan with the new start date
         });
 
         // --- WORKOUT & FOOD PLAN TEMPLATE DATA ---
-        // This array defines the *pattern* of your plan, without specific dates
         const healthPlanTemplate = [
             // Week 1 Patterns
             { title: 'Chest Day', type: 'strength', quote: "The only bad workout is the one that didn't happen.", exercises: [{ name: 'Bench Press', sets: 4, reps: 8 }, { name: 'Incline Dumbbell Press', sets: 3, reps: 10 }, { name: 'Dumbbell Flyes', sets: 3, reps: 12 }, { name: 'Push-ups', sets: 3, reps: 'To Failure' }], meals: { breakfast: 'Greek yogurt (1 cup) + 1/2 cup mixed berries + 1 tbsp chia seeds.', lunch: 'Large mixed green salad + 4-5 oz grilled chicken + vinaigrette.', dinner: 'Baked cod (5-6 oz) + 1 cup roasted asparagus + 1/2 cup quinoa.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
@@ -225,23 +303,23 @@
             { title: 'Full Body Strength', type: 'strength', quote: "You don't have to be extreme, just consistent.", exercises: [{ name: 'Squats', sets: 3, reps: 10 }, { name: 'Bench Press', sets: 3, reps: 10 }, { name: 'Rows', sets: 3, reps: 10 }], meals: { breakfast: '2 scrambled eggs + black beans + salsa.', lunch: 'Leftover beef stir-fry + cauliflower rice.', dinner: 'Baked salmon (4-5 oz) + asparagus + sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
             { title: 'HIIT Cardio', type: 'cardio', quote: "If it doesn't challenge you, it doesn't change you.", description: '20 minutes of High-Intensity Interval Training.', meals: { breakfast: 'Oatmeal + protein + walnuts + blueberries.', lunch: 'Chicken salad + chickpeas + balsamic vinaigrette.', dinner: 'Turkey meatballs (5 oz) + zucchini noodles + sauce.', snacks: 'Optional: Small protein shake post-workout.' } },
             { title: 'Chest & Back (Supersets)', type: 'strength', quote: "Push yourself because no one else is going to do it for you.", exercises: [{ name: 'Incline Press + T-Bar Row', sets: 3, reps: 10 }, { name: 'Push-ups + Dumbbell Pullovers', sets: 3, reps: 12 }], meals: { breakfast: 'Greek yogurt + mixed berries + flax seeds.', lunch: 'Leftover turkey meatballs + zucchini noodles.', dinner: 'Chicken breast (5 oz) + roasted vegetables.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
-            // Add more weeks/days to this template as needed
+            // Add more weeks/days to this template as needed for longer plans
         ];
 
         // Function to render the health plan dynamically
-        function renderHealthPlan() {
+        async function renderHealthPlan() {
             healthPlanContainer.innerHTML = ''; // Clear existing cards
             const startDate = new Date(startDatePicker.value);
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
-            healthPlanTemplate.forEach((dayTemplate, index) => {
+            
+            for (let i = 0; i < healthPlanTemplate.length; i++) {
+                const dayTemplate = healthPlanTemplate[i];
                 const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + index); // Add days based on index
+                currentDate.setDate(startDate.getDate() + i); // Add days based on index
 
                 const formattedDate = currentDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
                 const dayOfWeek = currentDate.toLocaleDateString(undefined, { weekday: 'long' });
 
-                const cardId = `day-${currentDate.toISOString().split('T')[0]}`; // Unique ID based on ISO date
+                const cardId = `${currentDate.toISOString().split('T')[0]}_${i}`; // Unique ID: YYYY-MM-DD_index
                 
                 let cardContent = '';
 
@@ -251,13 +329,13 @@
                     cardContent += `<button class="food-toggle">Food Plan</button><div class="food-plan"><ul class="meal-list">`;
                     for (const mealType of ['breakfast', 'lunch', 'dinner', 'snacks']) {
                         if (dayTemplate.meals[mealType]) {
-                            const mealId = `${cardId}-meal-${mealType}`;
+                            const mealUniqueId = `${cardId}-meal-${mealType}`;
                             cardContent += `
                                 <li class="meal-item">
                                     <span class="meal-desc"><strong>${mealType.charAt(0).toUpperCase() + mealType.slice(1)}:</strong> ${dayTemplate.meals[mealType]}</span>
                                     <div class="meal-controls">
-                                        <input type="time" id="${mealId}-time">
-                                        <label class="custom-checkbox"><input type="checkbox" id="${mealId}-check"><span class="checkmark"></span></label>
+                                        <input type="time" id="${mealUniqueId}-time">
+                                        <label class="custom-checkbox"><input type="checkbox" id="${mealUniqueId}-check"><span class="checkmark"></span></label>
                                     </div>
                                 </li>`;
                         }
@@ -269,11 +347,11 @@
 
                 if (dayTemplate.type === 'strength' && dayTemplate.exercises && dayTemplate.exercises.length > 0) {
                     cardContent += '<ul class="exercise-list">';
-                    dayTemplate.exercises.forEach((ex) => {
-                        const exerciseId = `${cardId}-${ex.name.replace(/\s+/g, '-').toLowerCase()}`;
+                    dayTemplate.exercises.forEach((ex, exIndex) => {
+                        const exerciseUniqueId = `${cardId}-ex-${exIndex}`; // Unique ID for exercise
                         cardContent += `<li class="exercise-item"><span class="exercise-name">${ex.name} (${ex.sets} sets of ${ex.reps})</span>`;
-                        for (let i = 1; i <= ex.sets; i++) {
-                            cardContent += `<label class="custom-checkbox"><input type="checkbox" id="${exerciseId}-set${i}"><span class="checkmark"></span>Set ${i}</label>`;
+                        for (let j = 1; j <= ex.sets; j++) {
+                            cardContent += `<label class="custom-checkbox"><input type="checkbox" id="${exerciseUniqueId}-set${j}"><span class="checkmark"></span>Set ${j}</label>`;
                         }
                         cardContent += '</li>';
                     });
@@ -286,20 +364,50 @@
                 
                 const card = document.createElement('div');
                 card.className = 'day-card';
-                card.id = cardId;
+                card.id = cardId; // Use the dynamically generated unique ID
                 card.dataset.date = currentDate.toISOString().split('T')[0]; // Store full ISO date for consistent comparison
                 card.dataset.type = dayTemplate.type;
                 card.innerHTML = `<div class="card-header"><h3>${dayOfWeek}, ${formattedDate}: ${dayTemplate.title}</h3></div><div class="card-body">${cardContent}</div>${timerHtml}`;
                 healthPlanContainer.appendChild(card);
-            });
+            }
 
-            // Re-apply event listeners after cards are rendered
-            applyEventListenersToCards();
+            // After all cards are rendered, load their saved states and apply event listeners
+            await loadAndApplyCardStates();
+            applyEventListenersToCards(); // Re-apply event listeners after cards are rendered
             checkMissedWorkouts();
         }
 
-        // Call render on initial load
-        renderHealthPlan();
+        // --- LOAD AND APPLY CARD STATES FROM FIREBASE ---
+        async function loadAndApplyCardStates() {
+            const allCards = document.querySelectorAll('.day-card');
+            for (const card of allCards) {
+                const cardId = card.id;
+                const savedData = await loadCardStateFromFirestore(cardId);
+                if (savedData) {
+                    // Apply checkbox states
+                    for (const id in savedData.checkboxes || {}) {
+                        const checkbox = document.getElementById(id);
+                        if (checkbox) checkbox.checked = savedData.checkboxes[id];
+                    }
+                    // Apply time input values
+                    for (const id in savedData.times || {}) {
+                        const timeInput = document.getElementById(id);
+                        if (timeInput) timeInput.value = savedData.times[id];
+                    }
+                    // Apply timer elapsed time
+                    const timerId = `timer-${cardId}`;
+                    if (savedData.timers && savedData.timers[timerId] !== undefined) {
+                        const timerDisplay = card.querySelector('.timer-display');
+                        const elapsedTime = parseInt(savedData.timers[timerId] || '0');
+                        timerDisplay.textContent = formatTime(elapsedTime);
+                        // Store it temporarily for timer initialization
+                        card.dataset.elapsedTime = elapsedTime; 
+                    }
+                }
+                updateCardState(card); // Update UI based on loaded state
+            }
+        }
+
 
         // --- EVENT LISTENERS & STATE MANAGEMENT ---
         function applyEventListenersToCards() {
@@ -310,21 +418,25 @@
                 });
             });
 
-            document.querySelectorAll('input[type="checkbox"], input[type="time"]').forEach(input => {
-                const savedState = localStorage.getItem(input.id);
-                if (input.type === 'checkbox' && savedState === 'true') input.checked = true;
-                if (input.type === 'time' && savedState) input.value = savedState;
-                
+            document.querySelectorAll('.day-card input[type="checkbox"], .day-card input[type="time"]').forEach(input => {
                 input.addEventListener('change', function() {
-                    const valueToSave = input.type === 'checkbox' ? this.checked : this.value;
-                    localStorage.setItem(this.id, valueToSave);
-                    if(input.type === 'checkbox') updateCardState(this.closest('.day-card'));
+                    const card = this.closest('.day-card');
+                    const cardId = card.id;
+                    const fieldId = this.id;
+                    
+                    let dataToSave = {};
+                    if (this.type === 'checkbox') {
+                        dataToSave = { checkboxes: { [fieldId]: this.checked } };
+                    } else if (this.type === 'time') {
+                        dataToSave = { times: { [fieldId]: this.value } };
+                    }
+                    saveCardStateToFirestore(cardId, dataToSave);
+                    if(this.type === 'checkbox') updateCardState(card);
                 });
             });
             
             document.querySelectorAll('.day-card').forEach(card => {
-                updateCardState(card);
-                initializeTimer(card);
+                initializeTimer(card); // Now called here after potential data loaded
             });
         }
 
@@ -338,24 +450,36 @@
                 exCheckboxes.forEach(cb => {
                     const item = cb.closest('.exercise-item');
                     const allSets = item.querySelectorAll('input[type="checkbox"]');
+                    // Ensure the exercise item is marked completed only if ALL its sets are checked
                     item.classList.toggle('completed', Array.from(allSets).every(set => set.checked));
                 });
             }
             
+            // Check if the entire card (day) is completed
             const allCheckboxesInCard = card.querySelectorAll('.custom-checkbox input');
             card.classList.toggle('completed-day', Array.from(allCheckboxesInCard).every(cb => cb.checked));
             checkMissedWorkouts();
         }
+
+        let timers = {}; // Object to store interval IDs for each card's timer
 
         function initializeTimer(card) {
             const timerDisplay = card.querySelector('.timer-display');
             const startBtn = card.querySelector('.start-btn');
             const pauseBtn = card.querySelector('.pause-btn');
             const resetBtn = card.querySelector('.reset-btn');
-            const timerId = `timer-${card.id}`;
-            let timerInterval;
-            let elapsedTime = parseInt(localStorage.getItem(timerId) || '0');
+            const cardId = card.id;
+            const timerUniqueId = `timer-${cardId}`;
+            
+            // Get initial elapsed time from dataset (set during loadAndApplyCardStates) or 0
+            let elapsedTime = parseInt(card.dataset.elapsedTime || '0');
             let isRunning = false;
+
+            // Clear any existing interval for this timer to prevent duplicates
+            if (timers[timerUniqueId]) {
+                clearInterval(timers[timerUniqueId]);
+                delete timers[timerUniqueId];
+            }
             
             const formatTime = (seconds) => {
                 const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
@@ -366,12 +490,51 @@
             
             timerDisplay.textContent = formatTime(elapsedTime);
 
-            startBtn.addEventListener('click', () => { if (isRunning) return; isRunning = true; pauseBtn.classList.add('running'); pauseBtn.textContent = 'Pause'; timerInterval = setInterval(() => { elapsedTime++; timerDisplay.textContent = formatTime(elapsedTime); localStorage.setItem(timerId, elapsedTime); }, 1000); });
-            pauseBtn.addEventListener('click', () => { if (!isRunning) return; isRunning = false; pauseBtn.classList.remove('running'); pauseBtn.textContent = 'Resume'; clearInterval(timerInterval); });
-            resetBtn.addEventListener('click', () => { isRunning = false; clearInterval(timerInterval); elapsedTime = 0; timerDisplay.textContent = formatTime(elapsedTime); localStorage.setItem(timerId, elapsedTime); pauseBtn.classList.remove('running'); pauseBtn.textContent = 'Pause'; });
+            startBtn.onclick = () => { // Using onclick to easily reassign
+                if (isRunning) return;
+                isRunning = true;
+                pauseBtn.classList.add('running');
+                pauseBtn.textContent = 'Pause';
+                timers[timerUniqueId] = setInterval(() => {
+                    elapsedTime++;
+                    timerDisplay.textContent = formatTime(elapsedTime);
+                    // Save timer state to Firestore periodically or on pause/reset
+                    saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+                }, 1000);
+            };
+
+            pauseBtn.onclick = () => { // Using onclick
+                if (!isRunning) { // If paused, it becomes 'Resume'
+                    isRunning = true;
+                    pauseBtn.classList.add('running');
+                    pauseBtn.textContent = 'Pause';
+                    timers[timerUniqueId] = setInterval(() => {
+                        elapsedTime++;
+                        timerDisplay.textContent = formatTime(elapsedTime);
+                        saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+                    }, 1000);
+                } else { // If running, it becomes 'Pause'
+                    isRunning = false;
+                    pauseBtn.classList.remove('running');
+                    pauseBtn.textContent = 'Resume';
+                    clearInterval(timers[timerUniqueId]);
+                    delete timers[timerUniqueId];
+                    saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+                }
+            };
+
+            resetBtn.onclick = () => { // Using onclick
+                isRunning = false;
+                clearInterval(timers[timerUniqueId]);
+                delete timers[timerUniqueId];
+                elapsedTime = 0;
+                timerDisplay.textContent = formatTime(elapsedTime);
+                pauseBtn.classList.remove('running');
+                pauseBtn.textContent = 'Pause';
+                saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+            };
         }
         
-        const missedWorkoutsList = document.getElementById('missed-workouts-list');
         function checkMissedWorkouts() {
             missedWorkoutsList.innerHTML = '';
             const today = new Date();
