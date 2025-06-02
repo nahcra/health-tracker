@@ -115,7 +115,6 @@
     </style>
 </head>
 <body>
-
     <div class="welcome-screen">
         <div class="logo-container">
             <svg class="welcome-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -128,27 +127,60 @@
         <h1 class="welcome-title">Workout Tracker</h1>
     </div>
 
-    <div id="main-app-content" style="display: none;"> 
-        <div class="container">
-            <div class="profile-section">
-                <h2>My Profile</h2>
-                <div class="profile-inputs">
-                    <input type="text" id="userName" placeholder="Enter Your Name">
-                    <input type="text" id="userWeight" placeholder="Enter Current Weight">
-                    <a href="./grocery_list.html" class="grocery-link-btn">Go to Grocery List</a>
-                    <button id="logout-btn" class="grocery-link-btn" style="background-color: var(--accent-danger);">Logout</button>
-                </div>
+    <div id="auth-container" class="auth-container hidden">
+        <h1 id="auth-title">Login</h1>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" placeholder="Enter your email" required>
             </div>
+            <div class="input-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="Enter your password (min. 6 characters)" required>
+            </div>
+            <div class="auth-buttons">
+                <button type="submit" id="loginBtn">Login</button>
+            </div>
+            <p class="error-message" id="auth-error"></p>
+            <p style="text-align: center; margin-top: 20px;"><a href="#" id="auth-toggle" style="color: var(--accent-primary); text-decoration: none;">Need an account? Sign Up</a></p>
+        </form>
 
-            <h1>My June Health Plan</h1>
-            <section id="week1"></section>
-            <section id="week2"></section>
-            <section id="week3"></section>
-            
-            <div class="missed-workouts-section">
-                <h2>Missed Entries</h2>
-                <ul id="missed-workouts-list"></ul>
+        <form id="signup-form" class="hidden">
+            <div class="input-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" placeholder="Enter your email" required>
             </div>
+            <div class="input-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" placeholder="Enter your password (min. 6 characters)" required>
+            </div>
+            <div class="auth-buttons">
+                <button type="submit" id="signupBtn">Sign Up</button>
+            </div>
+            <p class="error-message" id="auth-error-signup"></p>
+            <p style="text-align: center; margin-top: 20px;"><a href="#" id="auth-toggle" style="color: var(--accent-primary); text-decoration: none;">Have an account? Login</a></p>
+        </form>
+    </div>
+
+    <div id="app-container" class="container hidden">
+        <div class="profile-section">
+            <h2>My Profile</h2>
+            <div class="profile-inputs">
+                <input type="text" id="userName" placeholder="Enter Your Name">
+                <input type="text" id="userWeight" placeholder="Enter Current Weight">
+                <a href="workout%20app/grocery_list.html" class="grocery-link-btn">Go to Grocery List</a>
+                <button id="logout-btn" class="grocery-link-btn" style="background-color: var(--accent-danger);">Logout</button>
+            </div>
+        </div>
+
+        <h1>My June Health Plan</h1>
+        <section id="week1"></section>
+        <section id="week2"></section>
+        <section id="week3"></section>
+        
+        <div class="missed-workouts-section">
+            <h2>Missed Entries</h2>
+            <ul id="missed-workouts-list"></ul>
         </div>
     </div>
 
@@ -156,15 +188,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    <script src="./firebase-init.js"></script>
-    <script src="./main.js"></script>
+    <script src="workout%20app/firebase-init.js"></script>
+    <script src="workout%20app/main.js"></script>
 
     <script>
         // Welcome screen hiding logic (runs independently)
         document.addEventListener('DOMContentLoaded', function() {
             const welcomeScreen = document.querySelector('.welcome-screen');
-            setTimeout(() => { 
-                welcomeScreen.classList.add('hidden'); 
+            setTimeout(() => {
+                welcomeScreen.classList.add('hidden');
             }, 4000); // Hides after 4 seconds
         });
     </script>
