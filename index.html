@@ -1,3 +1,4 @@
+78% of storage used … If you run out, you can't create, edit, and upload files.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,8 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-
-    <style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script> <style>
         /* CSS Variables */
         :root {
             --bg-dark: #1a1a2e;
@@ -138,13 +138,25 @@
         <h1 class="welcome-title">Workout Tracker</h1>
     </div>
 
-    <div class="container">
+    <div id="auth-container" class="container" style="display: none;">
+        <h2>Login / Sign Up</h2>
+        <div class="profile-inputs" style="flex-direction: column;">
+            <input type="email" id="authEmail" placeholder="Email" required>
+            <input type="password" id="authPassword" placeholder="Password" required>
+            <button id="signInBtn" class="grocery-link-btn" style="background-color: var(--accent-primary);">Sign In</button>
+            <button id="signUpBtn" class="grocery-link-btn" style="background-color: var(--accent-secondary);">Sign Up</button>
+            <p id="authError" style="color: var(--accent-danger); margin-top: 10px;"></p>
+        </div>
+    </div>
+
+    <div id="app-container" class="container" style="display: none;">
         <div class="profile-section">
             <h2>My Profile</h2>
             <div class="profile-inputs">
                 <input type="text" id="userName" placeholder="Enter Your Name">
                 <input type="text" id="userWeight" placeholder="Enter Current Weight">
                 <a href="./grocery_list.html" class="grocery-link-btn">Go to Grocery List</a>
+                <button id="signOutBtn" class="grocery-link-btn" style="background-color: var(--accent-danger);">Sign Out</button>
             </div>
         </div>
 
@@ -179,17 +191,25 @@
         const app = firebase.initializeApp(firebaseConfig);
         const analytics = firebase.analytics();
         const db = firebase.firestore(); // Initialize Firestore
-        
-        // Define a user ID for data storage.
-        // For multiple users, you'd integrate Firebase Authentication here.
-        const USER_ID = 'default_user_profile'; // Static ID for now.
+        const auth = firebase.auth(); // Initialize Auth
+
+        // USER_ID will now be dynamic based on authenticated user
+        let USER_ID = null; // Will be set by auth state listener
     </script>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- CONFIG & SETUP ---
+        // --- UI Element References ---
         const welcomeScreen = document.querySelector('.welcome-screen');
-        setTimeout(() => { welcomeScreen.classList.add('hidden'); }, 4000);
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+
+        const authEmailInput = document.getElementById('authEmail');
+        const authPasswordInput = document.getElementById('authPassword');
+        const signInBtn = document.getElementById('signInBtn');
+        const signUpBtn = document.getElementById('signUpBtn');
+        const authErrorText = document.getElementById('authError');
+        const signOutBtn = document.getElementById('signOutBtn');
 
         const userNameInput = document.getElementById('userName');
         const userWeightInput = document.getElementById('userWeight');
@@ -197,41 +217,129 @@
         const healthPlanContainer = document.getElementById('health-plan-container');
         const missedWorkoutsList = document.getElementById('missed-workouts-list');
         
-        // --- FIREBASE DATA FUNCTIONS ---
-        // Save profile data to Firestore
+        // --- WELCOME SCREEN LOGIC ---
+        setTimeout(() => { welcomeScreen.classList.add('hidden'); }, 4000);
+
+        // --- FIREBASE AUTHENTICATION FUNCTIONS ---
+        async function handleSignUp() {
+            try {
+                const email = authEmailInput.value;
+                const password = authPasswordInput.value;
+                if (!email || !password) {
+                    authErrorText.textContent = "Please enter email and password.";
+                    return;
+                }
+                // Basic password validation
+                if (password.length < 6) {
+                    authErrorText.textContent = "Password should be at least 6 characters.";
+                    return;
+                }
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                console.log("Signed up:", userCredential.user.uid);
+                authErrorText.textContent = ""; // Clear error
+            } catch (error) {
+                authErrorText.textContent = error.message;
+                console.error("Sign up error:", error);
+            }
+        }
+
+        async function handleSignIn() {
+            try {
+                const email = authEmailInput.value;
+                const password = authPasswordInput.value;
+                if (!email || !password) {
+                    authErrorText.textContent = "Please enter email and password.";
+                    return;
+                }
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                console.log("Signed in:", userCredential.user.uid);
+                authErrorText.textContent = ""; // Clear error
+            } catch (error) {
+                authErrorText.textContent = error.message;
+                console.error("Sign in error:", error);
+            }
+        }
+
+        async function handleSignOut() {
+            try {
+                await auth.signOut();
+                console.log("Signed out.");
+            } catch (error) {
+                console.error("Sign out error:", error);
+            }
+        }
+
+        // --- AUTH STATE CHANGE LISTENER ---
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // User is signed in. Show app content.
+                USER_ID = user.uid; // Set dynamic USER_ID
+                authContainer.style.display = 'none';
+                appContainer.style.display = 'block';
+                console.log("User logged in:", USER_ID);
+
+                // Load user-specific data
+                await loadProfileData();
+                await setAndLoadStartDate(); // This now relies on USER_ID for Firestore
+            } else {
+                // User is signed out. Show auth screen.
+                USER_ID = null; // Clear USER_ID
+                authContainer.style.display = 'block';
+                appContainer.style.display = 'none';
+                console.log("User logged out.");
+                // Clear inputs/UI for next login or new user
+                authEmailInput.value = '';
+                authPasswordInput.value = '';
+                userNameInput.value = '';
+                userWeightInput.value = '';
+                healthPlanContainer.innerHTML = ''; // Clear displayed plan
+                missedWorkoutsList.innerHTML = '<li>Please log in to see your plan.</li>';
+            }
+        });
+
+        // --- Add Event Listeners for Auth Buttons ---
+        signInBtn.addEventListener('click', handleSignIn);
+        signUpBtn.addEventListener('click', handleSignUp);
+        signOutBtn.addEventListener('click', handleSignOut);
+
+
+        // --- FIREBASE DATA FUNCTIONS (UPDATED TO USE DYNAMIC USER_ID) ---
         async function saveProfileData(name, weight) {
+            if (!USER_ID) { console.warn("No user ID. Cannot save profile data."); return; }
             try {
                 await db.collection('users').doc(USER_ID).set({
                     userName: name,
                     userWeight: weight,
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true }); // Use merge to avoid overwriting other fields
-                console.log("Profile data saved to Firebase.");
+                }, { merge: true });
+                console.log("Profile data saved to Firebase for user:", USER_ID);
             } catch (e) {
                 console.error("Error saving profile data: ", e);
             }
         }
 
-        // Load profile data from Firestore
         async function loadProfileData() {
+            if (!USER_ID) { console.warn("No user ID. Cannot load profile data."); return; }
             try {
                 const doc = await db.collection('users').doc(USER_ID).get();
                 if (doc.exists) {
                     const data = doc.data();
                     userNameInput.value = data.userName || '';
                     userWeightInput.value = data.userWeight || '';
+                    console.log("Profile data loaded for user:", USER_ID);
                 } else {
-                    console.log("No profile data found for this user.");
+                    console.log("No profile data found for user:", USER_ID);
+                    userNameInput.value = '';
+                    userWeightInput.value = '';
                 }
             } catch (e) {
                 console.error("Error loading profile data: ", e);
             }
         }
 
-        // Save individual card state (checkboxes, timer, time inputs) to Firestore
         async function saveCardStateToFirestore(cardId, data) {
+            if (!USER_ID) { console.warn("No user ID. Cannot save card state."); return; }
             try {
-                // Ensure data structure is nested for cleaner updates
                 await db.collection('users').doc(USER_ID).collection('daily_entries').doc(cardId).set(data, { merge: true });
                 // console.log(`Card state for ${cardId} saved.`); // Keep commented for less console spam
             } catch (e) {
@@ -239,8 +347,8 @@
             }
         }
 
-        // Load individual card state from Firestore
         async function loadCardStateFromFirestore(cardId) {
+            if (!USER_ID) return null; // Cannot load if no user ID
             try {
                 const doc = await db.collection('users').doc(USER_ID).collection('daily_entries').doc(cardId).get();
                 if (doc.exists) {
@@ -252,14 +360,20 @@
             return null;
         }
 
-        // --- INITIAL LOAD & EVENT LISTENERS ---
-        loadProfileData(); // Load profile on startup
-
+        // --- INITIAL LOAD & EVENT LISTENERS (Adjusted) ---
+        // Profile inputs now save data to Firebase
         userNameInput.addEventListener('input', (e) => saveProfileData(e.target.value, userWeightInput.value));
         userWeightInput.addEventListener('input', (e) => saveProfileData(userNameInput.value, e.target.value));
 
-        // Set and Load Start Date (from Firestore then localStorage)
+        // Set and Load Start Date (now Firestore-first)
         async function setAndLoadStartDate() {
+            if (!USER_ID) { // If no user, default to today for display, but won't save.
+                const today = new Date();
+                startDatePicker.value = today.toISOString().split('T')[0];
+                renderHealthPlan();
+                return;
+            }
+
             let savedStartDate = null;
             try {
                 const doc = await db.collection('users').doc(USER_ID).get();
@@ -274,36 +388,35 @@
                 startDatePicker.value = savedStartDate;
             } else {
                 const today = new Date();
-                const todayISO = today.toISOString().split('T')[0]; // YYYY-MM-DD
-                startDatePicker.value = todayISO; // Set picker to today
+                const todayISO = today.toISOString().split('T')[0];
+                startDatePicker.value = todayISO;
+                // Save initial start date to Firestore for new users
                 await db.collection('users').doc(USER_ID).set({ planStartDate: todayISO }, { merge: true });
             }
-            renderHealthPlan(); // Render the plan with the effective start date
+            renderHealthPlan();
         }
 
-        setAndLoadStartDate(); // Call this function on DOMContentLoaded
-
+        // startDatePicker now triggers re-render and Firestore save
         startDatePicker.addEventListener('change', async function() {
-            // Save new start date to Firestore
+            if (!USER_ID) { console.warn("No user ID. Cannot save start date."); return; }
             await db.collection('users').doc(USER_ID).set({ planStartDate: this.value }, { merge: true });
-            renderHealthPlan(); // Re-render the plan with the new start date
+            renderHealthPlan();
         });
+
 
         // --- WORKOUT & FOOD PLAN TEMPLATE DATA ---
         const healthPlanTemplate = [
             // Week 1 Patterns
             { title: 'Chest Day', type: 'strength', quote: "The only bad workout is the one that didn't happen.", exercises: [{ name: 'Bench Press', sets: 4, reps: 8 }, { name: 'Incline Dumbbell Press', sets: 3, reps: 10 }, { name: 'Dumbbell Flyes', sets: 3, reps: 12 }, { name: 'Push-ups', sets: 3, reps: 'To Failure' }], meals: { breakfast: 'Greek yogurt (1 cup) + 1/2 cup mixed berries + 1 tbsp chia seeds.', lunch: 'Large mixed green salad + 4-5 oz grilled chicken + vinaigrette.', dinner: 'Baked cod (5-6 oz) + 1 cup roasted asparagus + 1/2 cup quinoa.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
             { title: 'Back Day', type: 'strength', quote: "Success isn't always about greatness. It's about consistency.", exercises: [{ name: 'Deadlifts', sets: 4, reps: 6 }, { name: 'Pull-ups / Lat Pulldowns', sets: 3, reps: 8 }, { name: 'Bent-Over Rows', sets: 3, reps: 10 }, { name: 'Face Pulls', sets: 3, reps: 15 }], meals: { breakfast: '2 scrambled eggs + 1 slice whole-grain toast + 1/4 avocado.', lunch: 'Leftover baked cod + asparagus + quinoa.', dinner: 'Turkey stir-fry (5 oz) + 2 cups veggies + 1/2 cup brown rice.', snacks: 'Optional: Small protein shake post-workout.' } },
-            { title: 'Cardio & Stretching', type: 'cardio', quote: "Your body can stand almost anything. It’s your mind that you have to convince.", description: '30 minutes of moderate-intensity cardio, followed by 15 minutes of full-body stretching.', meals: { breakfast: 'Oatmeal (1/2 cup dry) + protein + banana + almond butter.', lunch: 'Salmon salad (4-5 oz) + spinach + cherry tomatoes.', dinner: 'Chicken breast (5 oz) + green beans + mashed sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
+            { title: 'Cardio & Stretching', type: 'cardio', quote: "Your body can stand almost anything. It’s your mind that you have to convince.", description: '30 minutes of moderate-intensity cardio, followed by 15 minutes of full-body stretching.', meals: { breakfast: 'Oatmeal (1/2 cup dry) + protein + banana + almond butter.', lunch: 'Salmon salad (4-5 oz) + spinach + cherry tomatoes.', dinner: 'Chicken breast (5 oz) + green beans + mashed sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)'' } },
             { title: 'Leg Day', type: 'strength', quote: "Don't skip leg day. It's the foundation of a strong body.", exercises: [{ name: 'Barbell Squats', sets: 4, reps: 8 }, { name: 'Romanian Deadlifts', sets: 3, reps: 10 }, { name: 'Leg Press', sets: 3, reps: 12 }, { name: 'Calf Raises', sets: 4, reps: 15 }], meals: { breakfast: 'Cottage cheese (1 cup) + pineapple + flax seeds.', lunch: 'Leftover chicken + green beans + sweet potato.', dinner: 'Lentil soup (1.5 cups) + mixed greens salad.', snacks: 'Optional: Small protein shake post-workout.' } },
             { title: 'Arm Day', type: 'strength', quote: "Strive for progress, not perfection.", exercises: [{ name: 'Barbell Curls', sets: 3, reps: 10 }, { name: 'Triceps Pushdowns', sets: 3, reps: 10 }, { name: 'Hammer Curls', sets: 3, reps: 12 }, { name: 'Overhead Triceps Extension', sets: 3, reps: 12 }], meals: { breakfast: 'Protein smoothie: almond milk + spinach + banana.', lunch: 'Tuna salad on whole-grain bread + carrot sticks.', dinner: 'Baked chicken thighs (5 oz) + Brussels sprouts.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
             { title: 'Recovery Session', type: 'recovery', quote: "Recovery is just as important as the workout itself.", description: 'Sauna or Steam room session for 15-20 minutes.', meals: { breakfast: '2 boiled eggs + 1/2 cup berries + almonds.', lunch: 'Leftover chicken + Brussels sprouts.', dinner: 'White fish (5-6 oz) + broccoli + brown rice.', snacks: 'Optional: Small protein shake post-workout.' } },
             { title: 'Rest Day', type: 'rest', quote: "A day of rest is a part of your training.", description: 'Full rest. Focus on nutrition and hydration.', meals: { breakfast: 'Greek yogurt + granola + raspberries.', lunch: 'Shrimp salad (4-5 oz) + mixed greens + avocado.', dinner: 'Beef stir-fry (5 oz) + mixed vegetables + cauliflower rice.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
-            // Week 2 Patterns (can be expanded)
             { title: 'Full Body Strength', type: 'strength', quote: "You don't have to be extreme, just consistent.", exercises: [{ name: 'Squats', sets: 3, reps: 10 }, { name: 'Bench Press', sets: 3, reps: 10 }, { name: 'Rows', sets: 3, reps: 10 }], meals: { breakfast: '2 scrambled eggs + black beans + salsa.', lunch: 'Leftover beef stir-fry + cauliflower rice.', dinner: 'Baked salmon (4-5 oz) + asparagus + sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
             { title: 'HIIT Cardio', type: 'cardio', quote: "If it doesn't challenge you, it doesn't change you.", description: '20 minutes of High-Intensity Interval Training.', meals: { breakfast: 'Oatmeal + protein + walnuts + blueberries.', lunch: 'Chicken salad + chickpeas + balsamic vinaigrette.', dinner: 'Turkey meatballs (5 oz) + zucchini noodles + sauce.', snacks: 'Optional: Small protein shake post-workout.' } },
             { title: 'Chest & Back (Supersets)', type: 'strength', quote: "Push yourself because no one else is going to do it for you.", exercises: [{ name: 'Incline Press + T-Bar Row', sets: 3, reps: 10 }, { name: 'Push-ups + Dumbbell Pullovers', sets: 3, reps: 12 }], meals: { breakfast: 'Greek yogurt + mixed berries + flax seeds.', lunch: 'Leftover turkey meatballs + zucchini noodles.', dinner: 'Chicken breast (5 oz) + roasted vegetables.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
-            // Add more weeks/days to this template for longer plans
         ];
 
         // Function to render the health plan dynamically
@@ -321,7 +434,7 @@
                 const formattedDate = currentDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
                 const dayOfWeek = currentDate.toLocaleDateString(undefined, { weekday: 'long' });
 
-                const cardId = `${currentDate.toISOString().split('T')[0]}_${i}`; // Unique ID: YYYY-MM-DD_index
+                const cardId = `${currentDate.toISOString().split('T')[0]}_${i}`; // Unique ID:YYYY-MM-DD_index
                 
                 let cardContent = '';
 
