@@ -1,3 +1,4 @@
+78% of storage used … If you run out, you can't create, edit, and upload files.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,11 +129,8 @@
         <h1 class="welcome-title">Workout Tracker</h1>
     </div>
 
-    <div class="container">
-        <div id="auth-container" class="hidden">
-            </div>
-
-        <div id="app-container" class="hidden">
+    <div id="main-app-content" style="display: none;"> 
+        <div class="container">
             <div class="profile-section">
                 <h2>My Profile</h2>
                 <div class="profile-inputs">
@@ -162,5 +160,14 @@
     <script src="./firebase-init.js"></script>
     <script src="./main.js"></script>
 
-    </body>
+    <script>
+        // Welcome screen hiding logic (runs independently)
+        document.addEventListener('DOMContentLoaded', function() {
+            const welcomeScreen = document.querySelector('.welcome-screen');
+            setTimeout(() => { 
+                welcomeScreen.classList.add('hidden'); 
+            }, 4000); // Hides after 4 seconds
+        });
+    </script>
+</body>
 </html>

@@ -1,3 +1,4 @@
+78% of storage used … If you run out, you can't create, edit, and upload files.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,6 +30,7 @@
         #signupBtn { background-color: var(--accent-secondary); color: #fff; }
         #signupBtn:hover { background-color: #27ae60; }
         .error-message { color: var(--accent-danger); text-align: center; margin-top: 15px; font-weight: 600; min-height: 1em; }
+        .hidden { display: none; } /* Ensure this class is defined for hiding elements */
     </style>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -36,21 +38,21 @@
     <script src="./firebase-init.js"></script>
 </head>
 <body>
-    <div class="auth-container">
+    <div class="auth-container" id="auth-container">
         <h1 id="auth-title">Login</h1>
         <form id="login-form">
             <div class="input-group">
-                <label for="login-email">Email</label>
-                <input type="email" id="login-email" placeholder="Enter your email" required>
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter your email" required>
             </div>
             <div class="input-group">
-                <label for="login-password">Password</label>
-                <input type="password" id="login-password" placeholder="Enter your password (min. 6 characters)" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password (min. 6 characters)" required>
             </div>
             <div class="auth-buttons">
                 <button type="submit" id="loginBtn">Login</button>
             </div>
-            <p class="error-message" id="auth-error"></p>
+            <p class="error-message" id="errorMessage"></p>
             <p style="text-align: center; margin-top: 20px;"><a href="#" id="auth-toggle" style="color: var(--accent-primary); text-decoration: none;">Need an account? Sign Up</a></p>
         </form>
 
@@ -66,10 +68,9 @@
             <div class="auth-buttons">
                 <button type="submit" id="signupBtn">Sign Up</button>
             </div>
-            <p class="error-message" id="auth-error-signup"></p>
-            <p style="text-align: center; margin-top: 20px;"><a href="#" id="auth-toggle" style="color: var(--accent-primary); text-decoration: none;">Have an account? Login</a></p>
+            <p class="error-message" id="signupErrorMessage"></p>
+            <p style="text-align: center; margin-top: 20px;"><a href="#" id="auth-toggle-back" style="color: var(--accent-primary); text-decoration: none;">Have an account? Login</a></p>
         </form>
     </div>
-
-    </body>
+</body>
 </html>
