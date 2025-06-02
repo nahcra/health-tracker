@@ -11,7 +11,9 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script> <style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+
+    <style>
         /* CSS Variables */
         :root {
             --bg-dark: #1a1a2e;
@@ -180,8 +182,7 @@
         
         // Define a user ID for data storage.
         // For multiple users, you'd integrate Firebase Authentication here.
-        // For now, we'll use a simple, static ID.
-        const USER_ID = 'default_user_profile'; // You could make this dynamic with auth later
+        const USER_ID = 'default_user_profile'; // Static ID for now.
     </script>
 
     <script>
@@ -227,11 +228,12 @@
             }
         }
 
-        // Save individual card state (checkboxes, timer) to Firestore
+        // Save individual card state (checkboxes, timer, time inputs) to Firestore
         async function saveCardStateToFirestore(cardId, data) {
             try {
+                // Ensure data structure is nested for cleaner updates
                 await db.collection('users').doc(USER_ID).collection('daily_entries').doc(cardId).set(data, { merge: true });
-                console.log(`Card state for ${cardId} saved.`);
+                // console.log(`Card state for ${cardId} saved.`); // Keep commented for less console spam
             } catch (e) {
                 console.error(`Error saving card state for ${cardId}: `, e);
             }
@@ -256,10 +258,9 @@
         userNameInput.addEventListener('input', (e) => saveProfileData(e.target.value, userWeightInput.value));
         userWeightInput.addEventListener('input', (e) => saveProfileData(userNameInput.value, e.target.value));
 
-        // Store selected start date in Firestore and localStorage
+        // Set and Load Start Date (from Firestore then localStorage)
         async function setAndLoadStartDate() {
-            let savedStartDate = localStorage.getItem('planStartDate');
-            // Try loading from Firestore first
+            let savedStartDate = null;
             try {
                 const doc = await db.collection('users').doc(USER_ID).get();
                 if (doc.exists && doc.data().planStartDate) {
@@ -273,18 +274,17 @@
                 startDatePicker.value = savedStartDate;
             } else {
                 const today = new Date();
-                const todayISO = today.toISOString().split('T')[0];
-                startDatePicker.valueAsDate = today;
-                localStorage.setItem('planStartDate', todayISO); // Also keep local for quick access
+                const todayISO = today.toISOString().split('T')[0]; // YYYY-MM-DD
+                startDatePicker.value = todayISO; // Set picker to today
                 await db.collection('users').doc(USER_ID).set({ planStartDate: todayISO }, { merge: true });
             }
-            renderHealthPlan();
+            renderHealthPlan(); // Render the plan with the effective start date
         }
 
-        setAndLoadStartDate(); // Call on DOMContentLoaded
+        setAndLoadStartDate(); // Call this function on DOMContentLoaded
 
         startDatePicker.addEventListener('change', async function() {
-            localStorage.setItem('planStartDate', this.value);
+            // Save new start date to Firestore
             await db.collection('users').doc(USER_ID).set({ planStartDate: this.value }, { merge: true });
             renderHealthPlan(); // Re-render the plan with the new start date
         });
@@ -303,13 +303,15 @@
             { title: 'Full Body Strength', type: 'strength', quote: "You don't have to be extreme, just consistent.", exercises: [{ name: 'Squats', sets: 3, reps: 10 }, { name: 'Bench Press', sets: 3, reps: 10 }, { name: 'Rows', sets: 3, reps: 10 }], meals: { breakfast: '2 scrambled eggs + black beans + salsa.', lunch: 'Leftover beef stir-fry + cauliflower rice.', dinner: 'Baked salmon (4-5 oz) + asparagus + sweet potato.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
             { title: 'HIIT Cardio', type: 'cardio', quote: "If it doesn't challenge you, it doesn't change you.", description: '20 minutes of High-Intensity Interval Training.', meals: { breakfast: 'Oatmeal + protein + walnuts + blueberries.', lunch: 'Chicken salad + chickpeas + balsamic vinaigrette.', dinner: 'Turkey meatballs (5 oz) + zucchini noodles + sauce.', snacks: 'Optional: Small protein shake post-workout.' } },
             { title: 'Chest & Back (Supersets)', type: 'strength', quote: "Push yourself because no one else is going to do it for you.", exercises: [{ name: 'Incline Press + T-Bar Row', sets: 3, reps: 10 }, { name: 'Push-ups + Dumbbell Pullovers', sets: 3, reps: 12 }], meals: { breakfast: 'Greek yogurt + mixed berries + flax seeds.', lunch: 'Leftover turkey meatballs + zucchini noodles.', dinner: 'Chicken breast (5 oz) + roasted vegetables.', snacks: 'N/A (Focus on water/herbal tea if hungry)' } },
-            // Add more weeks/days to this template as needed for longer plans
+            // Add more weeks/days to this template for longer plans
         ];
 
         // Function to render the health plan dynamically
         async function renderHealthPlan() {
             healthPlanContainer.innerHTML = ''; // Clear existing cards
-            const startDate = new Date(startDatePicker.value);
+            
+            // Crucial fix: Ensure startDate is parsed correctly as local date
+            const startDate = new Date(startDatePicker.value + 'T00:00:00'); 
             
             for (let i = 0; i < healthPlanTemplate.length; i++) {
                 const dayTemplate = healthPlanTemplate[i];
@@ -383,6 +385,7 @@
             for (const card of allCards) {
                 const cardId = card.id;
                 const savedData = await loadCardStateFromFirestore(cardId);
+                
                 if (savedData) {
                     // Apply checkbox states
                     for (const id in savedData.checkboxes || {}) {
@@ -395,22 +398,23 @@
                         if (timeInput) timeInput.value = savedData.times[id];
                     }
                     // Apply timer elapsed time
-                    const timerId = `timer-${cardId}`;
-                    if (savedData.timers && savedData.timers[timerId] !== undefined) {
+                    const timerUniqueId = `timer-${cardId}`;
+                    if (savedData.timers && savedData.timers[timerUniqueId] !== undefined) {
                         const timerDisplay = card.querySelector('.timer-display');
-                        const elapsedTime = parseInt(savedData.timers[timerId] || '0');
+                        const elapsedTime = parseInt(savedData.timers[timerUniqueId] || '0');
                         timerDisplay.textContent = formatTime(elapsedTime);
-                        // Store it temporarily for timer initialization
+                        // Store it temporarily in dataset for timer initialization
                         card.dataset.elapsedTime = elapsedTime; 
                     }
                 }
-                updateCardState(card); // Update UI based on loaded state
+                updateCardState(card); // Update UI (progress bars, completed classes) based on loaded state
             }
         }
 
 
         // --- EVENT LISTENERS & STATE MANAGEMENT ---
         function applyEventListenersToCards() {
+            // Food toggle buttons
             document.querySelectorAll('.food-toggle').forEach(button => {
                 button.addEventListener('click', () => {
                     const content = button.nextElementSibling;
@@ -418,6 +422,7 @@
                 });
             });
 
+            // Checkboxes and Time inputs (save to Firestore on change)
             document.querySelectorAll('.day-card input[type="checkbox"], .day-card input[type="time"]').forEach(input => {
                 input.addEventListener('change', function() {
                     const card = this.closest('.day-card');
@@ -435,11 +440,85 @@
                 });
             });
             
+            // Initialize timers for each card
             document.querySelectorAll('.day-card').forEach(card => {
-                initializeTimer(card); // Now called here after potential data loaded
+                initializeTimer(card); // Ensure this is called after data is loaded and elements exist
             });
         }
 
+        // Helper function to format time (used by timers)
+        const formatTime = (seconds) => {
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        let runningTimers = {}; // Object to store interval IDs for each card's timer
+
+        function initializeTimer(card) {
+            const timerDisplay = card.querySelector('.timer-display');
+            const startBtn = card.querySelector('.start-btn');
+            const pauseBtn = card.querySelector('.pause-btn');
+            const resetBtn = card.querySelector('.reset-btn');
+            const cardId = card.id;
+            const timerUniqueId = `timer-${cardId}`;
+            
+            // Get initial elapsed time from dataset (set during loadAndApplyCardStates) or 0
+            let elapsedTime = parseInt(card.dataset.elapsedTime || '0');
+            
+            // Clear any existing interval for this timer to prevent duplicates if renderHealthPlan is called again
+            if (runningTimers[timerUniqueId]) {
+                clearInterval(runningTimers[timerUniqueId]);
+                delete runningTimers[timerUniqueId];
+            }
+            
+            timerDisplay.textContent = formatTime(elapsedTime);
+
+            // Function to start the timer
+            const startTimer = () => { 
+                if (runningTimers[timerUniqueId]) return; // Already running
+                runningTimers[timerUniqueId] = setInterval(() => {
+                    elapsedTime++;
+                    timerDisplay.textContent = formatTime(elapsedTime);
+                    // Save timer state to Firestore periodically (or more frequently if needed)
+                    saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+                }, 1000);
+                pauseBtn.classList.add('running');
+                pauseBtn.textContent = 'Pause';
+            };
+
+            // Function to pause/resume the timer
+            const togglePauseResumeTimer = () => {
+                if (runningTimers[timerUniqueId]) { // If currently running (pause it)
+                    clearInterval(runningTimers[timerUniqueId]);
+                    delete runningTimers[timerUniqueId];
+                    pauseBtn.classList.remove('running');
+                    pauseBtn.textContent = 'Resume';
+                } else { // If currently paused (resume it)
+                    startTimer(); // Simply call start to resume
+                }
+                saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+            };
+
+            // Function to reset the timer
+            const resetTimer = () => {
+                clearInterval(runningTimers[timerUniqueId]);
+                delete runningTimers[timerUniqueId];
+                elapsedTime = 0;
+                timerDisplay.textContent = formatTime(elapsedTime);
+                pauseBtn.classList.remove('running');
+                pauseBtn.textContent = 'Pause';
+                saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
+            };
+
+            // Attach event listeners
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', togglePauseResumeTimer);
+            resetBtn.addEventListener('click', resetTimer);
+        }
+        
+        // Updates progress bars, completed classes, and checks for missed workouts
         function updateCardState(card) {
             if (!card) return;
             const progressBar = card.querySelector('.progress-bar');
@@ -461,80 +540,7 @@
             checkMissedWorkouts();
         }
 
-        let timers = {}; // Object to store interval IDs for each card's timer
-
-        function initializeTimer(card) {
-            const timerDisplay = card.querySelector('.timer-display');
-            const startBtn = card.querySelector('.start-btn');
-            const pauseBtn = card.querySelector('.pause-btn');
-            const resetBtn = card.querySelector('.reset-btn');
-            const cardId = card.id;
-            const timerUniqueId = `timer-${cardId}`;
-            
-            // Get initial elapsed time from dataset (set during loadAndApplyCardStates) or 0
-            let elapsedTime = parseInt(card.dataset.elapsedTime || '0');
-            let isRunning = false;
-
-            // Clear any existing interval for this timer to prevent duplicates
-            if (timers[timerUniqueId]) {
-                clearInterval(timers[timerUniqueId]);
-                delete timers[timerUniqueId];
-            }
-            
-            const formatTime = (seconds) => {
-                const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-                const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-                const s = (seconds % 60).toString().padStart(2, '0');
-                return `${h}:${m}:${s}`;
-            }
-            
-            timerDisplay.textContent = formatTime(elapsedTime);
-
-            startBtn.onclick = () => { // Using onclick to easily reassign
-                if (isRunning) return;
-                isRunning = true;
-                pauseBtn.classList.add('running');
-                pauseBtn.textContent = 'Pause';
-                timers[timerUniqueId] = setInterval(() => {
-                    elapsedTime++;
-                    timerDisplay.textContent = formatTime(elapsedTime);
-                    // Save timer state to Firestore periodically or on pause/reset
-                    saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
-                }, 1000);
-            };
-
-            pauseBtn.onclick = () => { // Using onclick
-                if (!isRunning) { // If paused, it becomes 'Resume'
-                    isRunning = true;
-                    pauseBtn.classList.add('running');
-                    pauseBtn.textContent = 'Pause';
-                    timers[timerUniqueId] = setInterval(() => {
-                        elapsedTime++;
-                        timerDisplay.textContent = formatTime(elapsedTime);
-                        saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
-                    }, 1000);
-                } else { // If running, it becomes 'Pause'
-                    isRunning = false;
-                    pauseBtn.classList.remove('running');
-                    pauseBtn.textContent = 'Resume';
-                    clearInterval(timers[timerUniqueId]);
-                    delete timers[timerUniqueId];
-                    saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
-                }
-            };
-
-            resetBtn.onclick = () => { // Using onclick
-                isRunning = false;
-                clearInterval(timers[timerUniqueId]);
-                delete timers[timerUniqueId];
-                elapsedTime = 0;
-                timerDisplay.textContent = formatTime(elapsedTime);
-                pauseBtn.classList.remove('running');
-                pauseBtn.textContent = 'Pause';
-                saveCardStateToFirestore(cardId, { timers: { [timerUniqueId]: elapsedTime } });
-            };
-        }
-        
+        // Checks for and displays missed workouts
         function checkMissedWorkouts() {
             missedWorkoutsList.innerHTML = '';
             const today = new Date();
