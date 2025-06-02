@@ -1,7 +1,4 @@
 // workout app/main.js
-// This function is now called by firebase-init.js when a user logs in
-function initializeAppUI(user) {
-    // The welcome screen hiding is now handled directly in index.html
 
     const userNameInput = document.getElementById('userName');
     const userWeightInput = document.getElementById('userWeight');
@@ -9,7 +6,7 @@ function initializeAppUI(user) {
     if (typeof db === 'undefined') {
         console.error("Firestore (db) not initialized. Check firebase-init.js.");
         return;
-    }
+    
     const userDocRef = db.collection('users').doc(user.uid); // Reference to the user's document in Firestore
 
     // --- NEW: Function to save data to Firestore ---
