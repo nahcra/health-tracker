@@ -15,74 +15,59 @@
             --text-muted: #8c8c9a;
             --accent-primary: #00a8ff;
             --accent-secondary: #2ecc71;
-            --accent-tertiary: #9b59b6;
+            --accent-tertiary: #9b59b6; /* For Recovery */
             --accent-danger: #e74c3c;
             --border-color: #313154;
         }
 
-        /* --- ADD THIS: Helper class to hide elements --- */
-        .hidden { display: none !important; }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-dark); color: var(--text-light); line-height: 1.6; }
-        .container { max-width: 900px; margin: 20px auto; padding: 20px; }
 
-        /* --- ADD THIS: Styles for the new Login Form --- */
-        #auth-container {
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 30px;
-            background-color: var(--primary-dark);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-        }
-        #auth-container h2 { text-align: center; margin-bottom: 25px; color: #fff; }
-        .auth-form input {
-            width: 100%;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            background-color: var(--bg-dark);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-light);
+        body {
             font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
         }
-        .auth-form button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            background-color: var(--accent-primary);
-            color: #fff;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .auth-form button:hover { background-color: #007bb5; }
-        #auth-toggle { text-align: center; margin-top: 20px; cursor: pointer; color: var(--text-muted); }
-        #auth-toggle:hover { color: var(--accent-primary); }
-        #auth-error { color: var(--accent-danger); text-align: center; margin-bottom: 15px; font-size: 0.9rem; }
 
-        /* --- Your existing styles from here down are perfect, no changes needed --- */
-        .welcome-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-dark); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; transition: opacity 1s ease-out 2.5s, visibility 1s ease-out 2.5s; opacity: 1; visibility: visible; }
+        /* --- Welcome Screen --- */
+        .welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-dark);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease-out 2.5s, visibility 1s ease-out 2.5s;
+            opacity: 1; visibility: visible;
+        }
         .welcome-screen.hidden { opacity: 0; visibility: hidden; }
         .logo-container { opacity: 0; transform: scale(0.5); animation: logo-fade-in 1.5s forwards; }
         .welcome-logo { width: 120px; height: 120px; margin-bottom: 20px; }
         .welcome-title { font-size: 3rem; color: #fff; text-shadow: 0 0 15px var(--accent-primary); opacity: 0; transform: translateY(20px); animation: title-fade-in 1.5s forwards 0.5s; }
         @keyframes logo-fade-in { to { opacity: 1; transform: scale(1); } }
         @keyframes title-fade-in { to { opacity: 1; transform: translateY(0); } }
+
+        .container { max-width: 900px; margin: 20px auto; padding: 20px; }
+        
+        /* --- Profile & Headers --- */
         .profile-section { background-color: var(--primary-dark); padding: 20px; border-radius: 12px; margin-bottom: 40px; border: 1px solid var(--border-color); }
-        .profile-header { display: flex; justify-content: space-between; align-items: center; }
         .profile-section h2 { margin-top: 0; margin-bottom: 20px; text-align: center; }
         .profile-inputs { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; align-items: center; }
         .profile-inputs input { background-color: var(--bg-dark); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 15px; font-family: 'Poppins', sans-serif; font-size: 1rem; width: 200px; text-align: center; transition: border-color 0.3s; }
         .profile-inputs input:focus { outline: none; border-color: var(--accent-primary); }
-        .grocery-link-btn { background-color: var(--accent-secondary); color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: background-color 0.3s; }
+        .grocery-link-btn {
+            background-color: var(--accent-secondary);
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
         .grocery-link-btn:hover { background-color: #27ae60; }
-        #logout-btn { background-color: var(--accent-danger); color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: background-color 0.3s; cursor: pointer; border: none; font-family: 'Poppins', sans-serif; }
-        #logout-btn:hover { background-color: #c0392b; }
+
         h1 { text-align: center; font-size: 2.5rem; color: #fff; margin-bottom: 30px; text-shadow: 0 0 10px var(--accent-primary); }
         h2 { font-size: 2rem; color: var(--accent-primary); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin: 50px 0 30px; }
+        
+        /* Styles for Day Card, Food Tracker, etc. remain the same */
         .day-card { background-color: var(--primary-dark); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; border-left: 5px solid transparent; }
         .day-card.completed-day { border-left-color: var(--accent-secondary); opacity: 0.8; }
         .day-card.missed-day { border-left-color: var(--accent-danger); opacity: 0.7; }
@@ -133,54 +118,49 @@
 
     <div class="welcome-screen">
         <div class="logo-container">
-            </div>
+            <svg class="welcome-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M100 25C141.421 25 175 58.5786 175 100C175 141.421 141.421 175 100 175C58.5786 175 25 141.421 25 100C25 58.5786 58.5786 25 100 25ZM100 0C44.7715 0 0 44.7715 0 100C0 155.228 44.7715 200 100 200C155.228 200 200 155.228 200 100C200 44.7715 155.228 0 100 0Z" fill="#313154"/>
+                <path d="M60 100H80L90 120L110 80L120 100H140" stroke="#00a8ff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="40" y="90" width="30" height="20" rx="5" fill="#00a8ff"/>
+                <rect x="130" y="90" width="30" height="20" rx="5" fill="#00a8ff"/>
+            </svg>
+        </div>
         <h1 class="welcome-title">Workout Tracker</h1>
     </div>
 
-    <div id="auth-container">
-        <h2 id="auth-title">Login</h2>
-        <div id="auth-error"></div>
-        <form class="auth-form" id="login-form">
-            <input type="email" id="login-email" placeholder="Email" required>
-            <input type="password" id="login-password" placeholder="Password" required>
-            <button type="submit">Login</button>
-        </form>
-        <form class="auth-form hidden" id="signup-form">
-            <input type="email" id="signup-email" placeholder="Email" required>
-            <input type="password" id="signup-password" placeholder="Password (min. 6 characters)" required>
-            <button type="submit">Sign Up</button>
-        </form>
-        <p id="auth-toggle">Need an account? Sign Up</p>
-    </div>
+    <div class="container">
+        <div id="auth-container" class="hidden">
+            </div>
 
-    <div class="container hidden" id="app-container">
-        <div class="profile-section">
-            <div class="profile-header">
+        <div id="app-container" class="hidden">
+            <div class="profile-section">
                 <h2>My Profile</h2>
-                <button id="logout-btn">Logout</button> </div>
-            <div class="profile-inputs">
-                <input type="text" id="userName" placeholder="Enter Your Name">
-                <input type="text" id="userWeight" placeholder="Enter Current Weight">
-                <a href="./grocery_list.html" class="grocery-link-btn">Go to Grocery List</a>
+                <div class="profile-inputs">
+                    <input type="text" id="userName" placeholder="Enter Your Name">
+                    <input type="text" id="userWeight" placeholder="Enter Current Weight">
+                    <a href="./grocery_list.html" class="grocery-link-btn">Go to Grocery List</a>
+                    <button id="logout-btn" class="grocery-link-btn" style="background-color: var(--accent-danger);">Logout</button>
+                </div>
+            </div>
+
+            <h1>My June Health Plan</h1>
+            <section id="week1"></section>
+            <section id="week2"></section>
+            <section id="week3"></section>
+            
+            <div class="missed-workouts-section">
+                <h2>Missed Entries</h2>
+                <ul id="missed-workouts-list"></ul>
             </div>
         </div>
-
-        <h1>My June Health Plan</h1>
-        <section id="week1"></section>
-        <section id="week2"></section>
-        <section id="week3"></section>
-        
-        <div class="missed-workouts-section">
-            <h2>Missed Entries</h2>
-            <ul id="missed-workouts-list"></ul>
-        </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    <script src="firebase-init.js"></script>
-    <script src="main.js"></script>
-</body>
+    <script src="./firebase-init.js"></script>
+    <script src="./main.js"></script>
+
+    </body>
 </html>

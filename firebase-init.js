@@ -1,21 +1,34 @@
-// Paste your Firebase config object from Step 1 here
+// workout app/firebase-init.js
+// Firebase SDKs for authentication and Firestore
+// These are typically loaded via script tags in HTML, but good to include here for context
+// import { initializeApp } from "firebase/app"; // Not directly used here as firebase global is assumed
+// import { getAuth } from "firebase/auth"; // Not directly used here as firebase global is assumed
+// import { getFirestore } from "firebase/firestore"; // Not directly used here as firebase global is assumed
+
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSy...",
-    authDomain: "your-project-id.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project-id.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
+  apiKey: "AIzaSyCXZgNctLWAu0haKvd90_hFAlo1WHM1n7Q",
+  authDomain: "myhealthtrackerapp.firebaseapp.com",
+  projectId: "myhealthtrackerapp",
+  storageBucket: "myhealthtrackerapp.firebasestorage.app",
+  messagingSenderId: "234509938064",
+  appId: "1:234509938064:web:ab0c8e5af909b83ee99715",
+  measurementId: "G-HZYD9L44TC" // Your measurementId if you enabled Analytics
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase (using the global 'firebase' object from SDK script tags)
+if (typeof firebase !== 'undefined' && typeof firebase.app === 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+} else if (typeof firebase === 'undefined') {
+    console.error("Firebase SDKs not loaded. Please check script tags in HTML.");
+}
+
 
 // Get references to Firebase services
 const auth = firebase.auth();
-const db = firebase.firestore();
+const db = firebase.firestore(); // Ensure firestore is initialized if you're using db
 
-// Get references to our HTML elements
+// Get references to our HTML elements (these might be undefined if firebase-init.js is loaded without auth.html)
 const authContainer = document.getElementById('auth-container');
 const appContainer = document.getElementById('app-container');
 const logoutBtn = document.getElementById('logout-btn');
@@ -29,66 +42,94 @@ const authError = document.getElementById('auth-error');
 
 // --- AUTHENTICATION LOGIC ---
 
-// Toggle between Login and Sign Up forms
-authToggle.addEventListener('click', () => {
-    loginForm.classList.toggle('hidden');
-    signupForm.classList.toggle('hidden');
+// This entire block might only be relevant if firebase-init.js is included in auth.html
+// However, the current setup implies it's also loaded in index.html, so it's placed here.
 
-    if (signupForm.classList.contains('hidden')) {
-        authTitle.textContent = 'Login';
-        authToggle.textContent = 'Need an account? Sign Up';
-    } else {
-        authTitle.textContent = 'Sign Up';
-        authToggle.textContent = 'Have an account? Login';
-    }
-});
+if (authToggle) { // Only add listener if element exists
+    authToggle.addEventListener('click', () => {
+        loginForm.classList.toggle('hidden');
+        signupForm.classList.toggle('hidden');
 
-// Sign Up
-signupForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
+        if (signupForm.classList.contains('hidden')) {
+            authTitle.textContent = 'Login';
+            authToggle.textContent = 'Need an account? Sign Up';
+        } else {
+            authTitle.textContent = 'Sign Up';
+            authToggle.textContent = 'Have an account? Login';
+        }
+    });
+}
 
-    auth.createUserWithEmailAndPassword(email, password)
-        .catch(err => {
-            console.error(err);
-            authError.textContent = err.message;
-        });
-});
+if (signupForm) { // Only add listener if form exists
+    signupForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
 
-// Login
-loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
+        auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                console.log("User signed up:", userCredential.user.uid);
+                // Redirect to index.html after successful signup
+                window.location.href = './index.html'; 
+            })
+            .catch(err => {
+                console.error(err);
+                if (authError) authError.textContent = err.message;
+            });
+    });
+}
 
-    auth.signInWithEmailAndPassword(email, password)
-        .catch(err => {
-            console.error(err);
-            authError.textContent = err.message;
-        });
-});
+if (loginForm) { // Only add listener if form exists
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
 
-// Logout
-logoutBtn.addEventListener('click', () => {
-    auth.signOut();
-});
+        auth.signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                console.log("User logged in:", userCredential.user.uid);
+                // Redirect to index.html after successful login
+                window.location.href = './index.html'; 
+            })
+            .catch(err => {
+                console.error(err);
+                if (authError) authError.textContent = err.message;
+            });
+    });
+}
+
+if (logoutBtn) { // Only add listener if button exists
+    logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+    });
+}
 
 // Auth State Observer: This is the most important part.
 // It checks if a user is logged in or out and shows/hides the correct content.
 auth.onAuthStateChanged(user => {
-    if (user) {
-        // User is logged in
-        authContainer.classList.add('hidden');
-        appContainer.classList.remove('hidden');
-        authError.textContent = ''; // Clear any previous errors
-        
-        // Initialize the main app UI with the user's data
-        initializeAppUI(user);
+    if (authContainer && appContainer) { // Ensure these elements exist before manipulating
+        if (user) {
+            // User is logged in
+            authContainer.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            if (authError) authError.textContent = ''; // Clear any previous errors
+            
+            // Initialize the main app UI with the user's data
+            // This function is defined in main.js
+            if (typeof initializeAppUI === 'function') {
+                initializeAppUI(user);
+            } else {
+                console.warn("initializeAppUI function not found. Ensure main.js is loaded correctly.");
+            }
 
-    } else {
-        // User is logged out
-        authContainer.classList.remove('hidden');
-        appContainer.classList.add('hidden');
+        } else {
+            // User is logged out
+            authContainer.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+            // Redirect to auth.html if logged out and not already there
+            if (!window.location.pathname.endsWith('/auth.html')) {
+                 window.location.href = './auth.html';
+            }
+        }
     }
 });
