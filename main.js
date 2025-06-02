@@ -1,4 +1,4 @@
-// This function is now called by firebase-init.js when a user logs in
+This function is now called by firebase-init.js when a user logs in
 function initializeAppUI(user) {
     // --- CONFIG & SETUP ---
     const welcomeScreen = document.querySelector('.welcome-screen');
