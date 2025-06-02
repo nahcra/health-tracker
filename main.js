@@ -1,4 +1,3 @@
-78% of storage used … If you run out, you can't create, edit, and upload files.
 // workout app/main.js
 // This function is now called by firebase-init.js when a user logs in
 function initializeAppUI(user) {
