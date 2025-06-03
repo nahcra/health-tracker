@@ -1,3 +1,4 @@
+78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -86,7 +87,7 @@
 
     // This function is called by firebase-init.js when auth state changes
     // It's crucial for ensuring Firestore operations are performed with a valid user ID.
-    function initializeAppUI(user) {
+    async function initializeAppUI(user) { // Made async to await data loading
         currentUser = user; // Set the global currentUser for this session
 
         const userNameInput = document.getElementById('userName');
@@ -96,7 +97,8 @@
         const missedWorkoutsList = document.getElementById('missed-workouts-list');
         const programSelect = document.getElementById('programSelect');
         const generateWorkoutBtn = document.getElementById('generateWorkoutBtn');
-        
+        const welcomeScreen = document.querySelector('.welcome-screen'); // Get welcome screen reference here
+
         // --- FIREBASE DATA FUNCTIONS ---
         // Reference to the user's document in Firestore
         // Use the global `db` initialized in firebase-init.js
@@ -116,6 +118,7 @@
                 console.log("Profile data saved to Firebase.");
             } catch (e) {
                 console.error("Error saving profile data: ", e);
+                showCustomModal("Error saving profile data. Please check your internet connection.");
             }
         }
 
@@ -135,7 +138,7 @@
                         startDatePicker.value = data.planStartDate;
                     }
                     // After loading profile, render the plan
-                    renderHealthPlan();
+                    await renderHealthPlan(); // Await rendering
                 } else {
                     console.log("No profile data found for this user. Creating a new profile.");
                     // If no profile, set default values and save
@@ -143,10 +146,11 @@
                     startDatePicker.value = todayISO;
                     programSelect.value = '3-week-bootcamp'; // Default to the first program
                     await saveProfileData('', '', programSelect.value, todayISO);
-                    renderHealthPlan();
+                    await renderHealthPlan(); // Await rendering
                 }
             } catch (e) {
                 console.error("Error loading profile data: ", e);
+                showCustomModal("Error loading user profile. Please try refreshing the page.");
             }
         }
 
@@ -157,6 +161,7 @@
                 // console.log(`Card state for ${cardId} saved.`); // Keep commented for less console spam
             } catch (e) {
                 console.error(`Error saving card state for ${cardId}: `, e);
+                showCustomModal("Error saving workout progress. Please check your internet connection.");
             }
         }
 
@@ -169,12 +174,16 @@
                 }
             } catch (e) {
                 console.error(`Error loading card state for ${cardId}: `, e);
+                // Don't show modal for every card load error, as it can be too many
             }
             return null;
         }
 
         // --- INITIAL LOAD & EVENT LISTENERS ---
-        loadProfileData(); // Load profile and render plan on startup
+        await loadProfileData(); // Ensure profile data and initial plan are loaded before hiding welcome screen
+
+        // Hide welcome screen only after initial data is loaded and rendered
+        welcomeScreen.classList.add('hidden');
 
         userNameInput.addEventListener('input', (e) => saveProfileData(e.target.value, userWeightInput.value, programSelect.value, startDatePicker.value));
         userWeightInput.addEventListener('input', (e) => saveProfileData(userNameInput.value, e.target.value, programSelect.value, startDatePicker.value));
@@ -546,7 +555,7 @@
                             type: "OBJECT",
                             properties: {
                                 "title": { "type": "STRING" },
-                                "type": { "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] },
+                                "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] },
                                 "quote": { "type": "STRING" },
                                 "description": { "type": "STRING", "nullable": true },
                                 "exercises": {
@@ -732,9 +741,7 @@
                         window.location.href = './auth.html';
                     }
                 }
-                // Hide welcome screen after a delay, regardless of auth state
-                const welcomeScreen = document.querySelector('.welcome-screen');
-                setTimeout(() => { welcomeScreen.classList.add('hidden'); }, 2000); // Shorter delay for faster app entry
+                // The welcome screen hiding is now handled by initializeAppUI after content loads
             }
         }, 100); // Check every 100ms
     });
