@@ -1,10 +1,11 @@
+78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 // workout app/firebase-init.js
 // Firebase SDKs are typically loaded via script tags in HTML, but good to include here for context
-// import { initializeApp } from "firebase/app"; // Not directly used here as firebase global is assumed
-// import { getAuth } = "firebase/auth"; // Not directly used here as firebase global is assumed
-// import { getFirestore } = "firebase/firestore"; // Not directly used here as firebase global is assumed
+// import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js";
+// import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js";
+// import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js";
 
-// Your web app's Firebase configuration - THESE HAVE BEEN UPDATED
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCXZgNctLWAu0haKvd90_hFAlo1WHM1n7Q",
   authDomain: "myhealthtrackerapp.firebaseapp.com",
@@ -15,19 +16,29 @@ const firebaseConfig = {
   measurementId: "G-HZYD9L44TC" // Your measurementId if you enabled Analytics
 };
 
-// Initialize Firebase (using the global 'firebase' object from SDK script tags)
+// Initialize Firebase App
+let app;
 if (typeof firebase !== 'undefined' && typeof firebase.app === 'undefined') {
-    firebase.initializeApp(firebaseConfig);
-} else if (typeof firebase === 'undefined') {
+    app = firebase.initializeApp(firebaseConfig);
+} else if (typeof firebase !== 'undefined' && typeof firebase.app !== 'undefined') {
+    // If firebase.app is already defined, it means an app might have been initialized.
+    // Try to get the default app, or re-initialize if necessary (though this path is less common)
+    try {
+        app = firebase.app();
+    } catch (e) {
+        app = firebase.initializeApp(firebaseConfig);
+    }
+} else {
     console.error("Firebase SDKs not loaded. Please check script tags in HTML.");
 }
 
-// Get references to Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore(); // Ensure firestore is initialized if you're using db
+// Get references to Firebase services and make them globally accessible
+// These are declared with `var` or no keyword to ensure they are truly global
+// and can be accessed by scripts in index.html and grocery_list.html
+var auth = firebase.auth();
+var db = firebase.firestore();
 
 // Get references to our HTML elements (these might be undefined if firebase-init.js is loaded without auth.html)
-// These elements are primarily for auth.html
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const authToggle = document.getElementById('auth-toggle');
@@ -112,26 +123,25 @@ if (logoutBtn) { // Only add listener if button exists (i.e., on index.html)
 }
 
 // Auth State Observer: This is the most important part.
-// It checks if a user is logged in or out and shows/hides the correct content.
+// It checks if a user is logged in or out and sets a global variable.
+// The actual UI initialization will be handled by the DOMContentLoaded listener in index.html
 auth.onAuthStateChanged(user => {
+    // Expose the user object globally
+    window.currentUser = user;
+
     // Determine the current page
     const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
     const isIndexPage = window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/index') || window.location.pathname === '/'; // Handles root path
+    const isGroceryPage = window.location.pathname.endsWith('/grocery_list.html');
 
     if (user) {
         // User is logged in
         if (isAuthPage) {
             // If on auth page but logged in, redirect to index.html
             window.location.href = './index.html';
-        } else if (isIndexPage || window.location.pathname.endsWith('/grocery_list.html')) {
-            // If on index or grocery list page and logged in, ensure app UI is initialized
-            // This function is defined in index.html's script
-            if (typeof initializeAppUI === 'function') {
-                initializeAppUI(user);
-            } else {
-                console.warn("initializeAppUI function not found. Ensure index.html is loaded correctly and defines it.");
-            }
-        }
+        } 
+        // For index.html and grocery_list.html, the DOMContentLoaded listener will pick up window.currentUser
+        // and call initializeAppUI
     } else {
         // User is logged out
         if (!isAuthPage) {

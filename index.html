@@ -1,3 +1,4 @@
+78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,14 +80,14 @@
     </footer>
 
     <script>
-    // Global variable for the current authenticated user
-    let currentUser = null;
-    let db; // Firestore instance will be assigned by initializeAppUI
+    // Global variable for the current authenticated user (set by firebase-init.js)
+    // db is also globally available from firebase-init.js
+    let currentUser = null; 
 
     // This function is called by firebase-init.js when auth state changes
+    // It's crucial for ensuring Firestore operations are performed with a valid user ID.
     function initializeAppUI(user) {
-        currentUser = user;
-        db = firebase.firestore(); // Ensure db is initialized here
+        currentUser = user; // Set the global currentUser for this session
 
         const userNameInput = document.getElementById('userName');
         const userWeightInput = document.getElementById('userWeight');
@@ -98,6 +99,7 @@
         
         // --- FIREBASE DATA FUNCTIONS ---
         // Reference to the user's document in Firestore
+        // Use the global `db` initialized in firebase-init.js
         const userDocRef = db.collection('users').doc(currentUser.uid);
 
         // Save profile data to Firestore
@@ -442,7 +444,7 @@
                 progressBar.style.width = exCheckboxes.length > 0 ? (checkedCount / exCheckboxes.length) * 100 + '%' : '0%';
                 exCheckboxes.forEach(cb => {
                     const item = cb.closest('.exercise-item');
-                    const allSets = item.querySelectorAll('input[type="checkbox"]');
+                    const allSets = item.querySelectorAll('input[type="checkbox']');
                     // Ensure the exercise item is marked completed only if ALL its sets are checked
                     item.classList.toggle('completed', Array.from(allSets).every(set => set.checked));
                 });
@@ -482,7 +484,7 @@
 
         // Expose workoutPrograms globally for grocery_list.html
         window.workoutPrograms = workoutPrograms;
-        window.getCurrentUser = () => currentUser; // Expose current user
+        // window.getCurrentUser is already exposed by firebase-init.js
 
         // --- LLM Powered Feature: Generate New Workout Day ---
         generateWorkoutBtn.addEventListener('click', () => {
@@ -701,6 +703,38 @@
             modalContent.style.transform = 'translateY(0)';
         }
     }
+
+    // This ensures initializeAppUI is called once the DOM is fully loaded and currentUser is available
+    document.addEventListener('DOMContentLoaded', () => {
+        // Wait for firebase-init.js to set window.currentUser and for `db` to be initialized
+        const checkReadyInterval = setInterval(() => {
+            if (typeof window.currentUser !== 'undefined' && typeof db !== 'undefined') {
+                clearInterval(checkReadyInterval);
+                
+                const isIndexPage = window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/index') || window.location.pathname === '/';
+                const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
+
+                if (window.currentUser) {
+                    // User is logged in
+                    if (isIndexPage || window.location.pathname.endsWith('/grocery_list.html')) {
+                        initializeAppUI(window.currentUser);
+                    } else if (isAuthPage) {
+                        // If on auth page but logged in, redirect to index.html
+                        window.location.href = './index.html';
+                    }
+                } else {
+                    // User is logged out
+                    if (!isAuthPage) {
+                        // If not on auth page and logged out, redirect to auth.html
+                        window.location.href = './auth.html';
+                    }
+                }
+                // Hide welcome screen after a delay, regardless of auth state
+                const welcomeScreen = document.querySelector('.welcome-screen');
+                setTimeout(() => { welcomeScreen.classList.add('hidden'); }, 2000); // Shorter delay for faster app entry
+            }
+        }, 100); // Check every 100ms
+    });
     </script>
 </body>
 </html>
