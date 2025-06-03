@@ -1,4 +1,3 @@
-78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -449,7 +448,7 @@
             const progressBar = card.querySelector('.progress-bar');
             if (progressBar) {
                 const exCheckboxes = card.querySelectorAll('.exercise-item input[type="checkbox"]');
-                const checkedCount = card.querySelectorAll('.exercise-item input[type="checkbox"]:checked').length;
+                const checkedCount = card.querySelectorAll('.exercise-item input[type="checkbox']:checked').length;
                 progressBar.style.width = exCheckboxes.length > 0 ? (checkedCount / exCheckboxes.length) * 100 + '%' : '0%';
                 exCheckboxes.forEach(cb => {
                     const item = cb.closest('.exercise-item');
@@ -555,7 +554,7 @@
                             type: "OBJECT",
                             properties: {
                                 "title": { "type": "STRING" },
-                                "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] },
+                                "type": { "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] },
                                 "quote": { "type": "STRING" },
                                 "description": { "type": "STRING", "nullable": true },
                                 "exercises": {
