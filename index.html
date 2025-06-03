@@ -1,4 +1,3 @@
-78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,8 +79,9 @@
     </footer>
 
     <script>
-    // Global variable for the current authenticated user (set by firebase-init.js)
+    // Global variables for the current authenticated user (set by firebase-init.js)
     // db is also globally available from firebase-init.js
+    // currentUser is set by firebase-init.js's onAuthStateChanged listener
     let currentUser = null; 
 
     // This function is called by firebase-init.js when auth state changes
@@ -708,15 +708,18 @@
     document.addEventListener('DOMContentLoaded', () => {
         // Wait for firebase-init.js to set window.currentUser and for `db` to be initialized
         const checkReadyInterval = setInterval(() => {
-            if (typeof window.currentUser !== 'undefined' && typeof db !== 'undefined') {
+            // Check if firebase object is defined and if a default app has been initialized
+            // Also check if db is globally available
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0 && typeof db !== 'undefined') {
                 clearInterval(checkReadyInterval);
                 
                 const isIndexPage = window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/index') || window.location.pathname === '/';
                 const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
+                const isGroceryPage = window.location.pathname.endsWith('/grocery_list.html');
 
                 if (window.currentUser) {
                     // User is logged in
-                    if (isIndexPage || window.location.pathname.endsWith('/grocery_list.html')) {
+                    if (isIndexPage || isGroceryPage) { // Initialize app UI if on main or grocery page
                         initializeAppUI(window.currentUser);
                     } else if (isAuthPage) {
                         // If on auth page but logged in, redirect to index.html
@@ -724,8 +727,8 @@
                     }
                 } else {
                     // User is logged out
+                    // Only redirect if not already on the auth page
                     if (!isAuthPage) {
-                        // If not on auth page and logged out, redirect to auth.html
                         window.location.href = './auth.html';
                     }
                 }

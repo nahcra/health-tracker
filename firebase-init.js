@@ -1,4 +1,3 @@
-78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 // workout app/firebase-init.js
 // Firebase SDKs are typically loaded via script tags in HTML, but good to include here for context
 // import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js";
@@ -10,7 +9,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCXZgNctLWAu0haKvd90_hFAlo1WHM1n7Q",
   authDomain: "myhealthtrackerapp.firebaseapp.com",
   projectId: "myhealthtrackerapp",
-  storageBucket: "myhealthtrackerapp.firebasestorage.app",
+  storageBucket: "myhealthtrackerapp.firebasestorage.app", // This line was likely causing the 'storage' error if not properly commented or if a character was missing
   messagingSenderId: "234509938064",
   appId: "1:234509938064:web:ab0c8e5af909b83ee99715",
   measurementId: "G-HZYD9L44TC" // Your measurementId if you enabled Analytics
@@ -18,23 +17,18 @@ const firebaseConfig = {
 
 // Initialize Firebase App
 let app;
-if (typeof firebase !== 'undefined' && typeof firebase.app === 'undefined') {
-    app = firebase.initializeApp(firebaseConfig);
-} else if (typeof firebase !== 'undefined' && typeof firebase.app !== 'undefined') {
-    // If firebase.app is already defined, it means an app might have been initialized.
-    // Try to get the default app, or re-initialize if necessary (though this path is less common)
-    try {
-        app = firebase.app();
-    } catch (e) {
+if (typeof firebase !== 'undefined') {
+    if (firebase.apps.length === 0) { // Check if no Firebase app has been initialized yet
         app = firebase.initializeApp(firebaseConfig);
+    } else {
+        app = firebase.app(); // Get the default app if it's already initialized
     }
 } else {
     console.error("Firebase SDKs not loaded. Please check script tags in HTML.");
 }
 
 // Get references to Firebase services and make them globally accessible
-// These are declared with `var` or no keyword to ensure they are truly global
-// and can be accessed by scripts in index.html and grocery_list.html
+// Using `var` to ensure global scope for these variables.
 var auth = firebase.auth();
 var db = firebase.firestore();
 
