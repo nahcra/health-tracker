@@ -1,116 +1,688 @@
-78% of storage used … If you run out, you can't create, edit, and upload files.
-/* devanagari */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiEyp8kv8JHgFVrJJbecnFHGPezSQ.woff2) format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
-}
-/* latin-ext */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiEyp8kv8JHgFVrJJnecnFHGPezSQ.woff2) format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-/* latin */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiEyp8kv8JHgFVrJJfecnFHGPc.woff2) format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-/* devanagari */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiByp8kv8JHgFVrLEj6Z11lFd2JQEl8qw.woff2) format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
-}
-/* latin-ext */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiByp8kv8JHgFVrLEj6Z1JlFd2JQEl8qw.woff2) format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-/* latin */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiByp8kv8JHgFVrLEj6Z1xlFd2JQEk.woff2) format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-/* devanagari */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiByp8kv8JHgFVrLCz7Z11lFd2JQEl8qw.woff2) format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
-}
-/* latin-ext */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiByp8kv8JHgFVrLCz7Z1JlFd2JQEl8qw.woff2) format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-/* latin */
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url(https://fonts.gstatic.com/s/poppins/v23/pxiByp8kv8JHgFVrLCz7Z1xlFd2JQEk.woff2) format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+/* Modern UI Variables - Inspired by Apple Fitness, Strava, Fitbit */
+:root {
+    --color-primary: #007bff; /* Bright blue for accents, buttons */
+    --color-secondary: #2ecc71; /* Green for success, completion */
+    --color-tertiary: #9b59b6; /* Purple for recovery, special items */
+    --color-danger: #e74c3c; /* Red for missed, errors */
+
+    --color-background-dark: #1a1a2e; /* Deep dark background */
+    --color-card-background: #2a2a4e; /* Slightly lighter dark for cards */
+    --color-input-background: #1f1f38; /* Even darker for inputs */
+    
+    --color-text-light: #e0e0e0; /* Light grey for primary text */
+    --color-text-muted: #8c8c9a; /* Muted grey for secondary text */
+    --color-text-highlight: #ffffff; /* Pure white for strong highlights */
+
+    --color-border-subtle: #313154; /* Subtle border color */
+    --color-border-active: var(--color-primary); /* Active border color */
+
+    --font-family-base: 'Inter', sans-serif; /* Modern, clean font */
+    --border-radius-base: 12px; /* Consistent rounded corners */
+    --spacing-unit: 1rem; /* Base spacing unit */
+
+    --shadow-elevation-1: 0 4px 8px rgba(0, 0, 0, 0.2);
+    --shadow-elevation-2: 0 8px 16px rgba(0, 0, 0, 0.3);
+    --shadow-elevation-3: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* --- ADDED BASIC STYLES FOR VISIBILITY --- */
-/* This will make your page background light blue */
-body {
-    background-color: lightblue;
-    font-family: 'Poppins', sans-serif; /* Apply the Poppins font */
+/* Universal Box-sizing */
+* {
+    box-sizing: border-box;
     margin: 0;
-    padding: 20px; /* Some basic padding */
-    color: #333; /* Default text color */
+    padding: 0;
 }
 
-/* This will make the main heading red */
-h1 {
-    color: red;
-    text-align: center;
+/* Body Styles */
+body {
+    font-family: var(--font-family-base);
+    background-color: var(--color-background-dark);
+    color: var(--color-text-light);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Basic styling for the main content area */
-main {
-    background-color: white;
+/* --- Welcome Screen --- */
+.welcome-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, var(--color-background-dark), #0d0d1a, #070710);
+    animation: gradient-shift 15s ease infinite;
+    background-size: 200% 200%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 1s ease-out 2.5s, visibility 1s ease-out 2.5s;
+    opacity: 1;
+    visibility: visible;
+}
+
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.welcome-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.logo-container {
+    opacity: 0;
+    transform: scale(0.5);
+    animation: logo-fade-in 1.5s forwards;
+}
+
+.welcome-logo {
+    width: 150px; /* Larger logo */
+    height: 150px;
+    margin-bottom: 25px;
+    filter: drop-shadow(0 0 15px rgba(0, 123, 255, 0.7)); /* Glow effect */
+}
+
+.welcome-title {
+    font-size: 3.5rem; /* Larger title */
+    color: var(--color-text-highlight);
+    text-shadow: 0 0 20px var(--color-primary);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: title-fade-in 1.5s forwards 0.5s;
+}
+
+@keyframes logo-fade-in {
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes title-fade-in {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Main Container */
+.container {
+    max-width: 960px; /* Slightly wider container */
+    margin: 30px auto;
     padding: 20px;
-    margin: 20px auto; /* Center the main content */
-    max-width: 800px; /* Limit its width */
-    box-shadow: 0 0 10px rgba(0,0,0,0.1); /* Subtle shadow */
-    border-radius: 8px;
+    flex-grow: 1; /* Allows container to grow and push footer down */
 }
 
-/* Basic styling for the footer */
-footer {
+/* --- Profile & Headers --- */
+.profile-section {
+    background-color: var(--color-card-background);
+    padding: 30px;
+    border-radius: var(--border-radius-base);
+    margin-bottom: 40px;
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: var(--shadow-elevation-1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-section h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
     text-align: center;
-    margin-top: 30px;
-    font-size: 0.9em;
-    color: #666;
+    font-size: 2rem;
+    color: var(--color-primary);
+    text-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+    border-bottom: none; /* Remove border from here */
+    padding-bottom: 0;
+}
+
+.profile-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+}
+
+.profile-inputs input {
+    background-color: var(--color-input-background);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--border-radius-base);
+    padding: 12px 18px;
+    font-family: var(--font-family-base);
+    font-size: 1rem;
+    width: 220px; /* Slightly wider inputs */
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.profile-inputs input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+.profile-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.profile-actions .btn-link,
+.profile-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 25px;
+    border-radius: var(--border-radius-base);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+    font-size: 1rem;
+    cursor: pointer;
+    border: none;
+}
+
+.grocery-link-btn {
+    background-color: var(--color-secondary);
+    color: var(--color-text-highlight);
+    box-shadow: var(--shadow-elevation-1);
+}
+
+.grocery-link-btn:hover {
+    background-color: #27ae60;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevation-2);
+}
+
+#logout-btn {
+    background-color: var(--color-danger);
+    color: var(--color-text-highlight);
+    box-shadow: var(--shadow-elevation-1);
+}
+
+#logout-btn:hover {
+    background-color: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevation-2);
+}
+
+h1 {
+    text-align: center;
+    font-size: 3rem;
+    color: var(--color-text-highlight);
+    margin-bottom: 40px;
+    text-shadow: 0 0 15px var(--color-primary);
+}
+
+h2 {
+    font-size: 2rem;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-border-subtle);
+    padding-bottom: 15px;
+    margin: 50px 0 30px;
+    text-align: center;
+}
+
+/* --- Program Selection --- */
+.program-selection-section {
+    background-color: var(--color-card-background);
+    padding: 30px;
+    border-radius: var(--border-radius-base);
+    margin-bottom: 40px;
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: var(--shadow-elevation-1);
+    text-align: center;
+}
+
+.program-selection-section h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    color: var(--color-primary);
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+#programSelect {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px 18px;
+    background-color: var(--color-input-background);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--border-radius-base);
+    color: var(--color-text-light);
+    font-family: var(--font-family-base);
+    font-size: 1rem;
+    margin-bottom: 20px;
+    appearance: none; /* Remove default select arrow */
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23e0e0e0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 20px;
+    cursor: pointer;
+}
+
+#programSelect option {
+    background-color: var(--color-input-background);
+    color: var(--color-text-light);
+}
+
+/* --- Day Card, Food Tracker, etc. Styles --- */
+.day-card {
+    background-color: var(--color-card-background);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--border-radius-base);
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: var(--shadow-elevation-1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    border-left: 5px solid transparent;
+}
+
+.day-card.completed-day {
+    border-left-color: var(--color-secondary);
+    opacity: 0.8;
+    box-shadow: var(--shadow-elevation-2);
+}
+
+.day-card.missed-day {
+    border-left-color: var(--color-danger);
+    opacity: 0.7;
+}
+
+.day-card[data-type="recovery"] {
+    border-left-color: var(--color-tertiary);
+}
+
+.day-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-elevation-2);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.card-header h3 {
+    font-size: 1.6rem; /* Slightly larger heading */
+    color: var(--color-text-highlight);
+    flex-grow: 1;
+}
+
+.quote-of-the-day {
+    font-style: italic;
+    color: var(--color-text-muted);
+    border-left: 3px solid var(--color-primary);
+    padding-left: 15px;
+    margin: 20px 5px 25px 5px;
+    font-size: 1rem;
+}
+
+.food-toggle {
+    background-color: var(--color-input-background);
+    border: 1px solid var(--color-border-subtle);
+    color: var(--color-secondary);
+    padding: 12px 18px;
+    border-radius: var(--border-radius-base);
+    cursor: pointer;
+    display: flex; /* Use flex for alignment */
+    justify-content: space-between; /* Space out text and icon */
+    align-items: center;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-family-base);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.food-toggle:hover {
+    background-color: #3a3a5e; /* Slightly lighter hover */
+    border-color: var(--color-primary);
+}
+
+.food-toggle .icon {
+    transition: transform 0.3s ease;
+}
+
+.food-toggle.expanded .icon {
+    transform: rotate(90deg); /* Rotate icon when expanded */
+}
+
+.food-plan {
+    display: none;
+    padding: 15px;
+    background-color: rgba(0, 0, 0, 0.1); /* Subtle transparent background */
+    border-radius: var(--border-radius-base);
+    border: 1px dashed var(--color-border-subtle); /* Dashed border */
+}
+
+.meal-list {
+    list-style: none;
+    padding: 0;
+}
+
+.meal-item {
+    display: flex;
+    align-items: flex-start; /* Align to top for multi-line meal desc */
+    justify-content: space-between;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1); /* Separator */
+}
+
+.meal-item:last-child {
+    border-bottom: none;
+}
+
+.meal-item .meal-desc {
+    flex-grow: 1;
+    color: var(--color-text-light);
+    font-size: 0.95rem;
+    padding-right: 15px;
+}
+
+.meal-item strong {
+    color: var(--color-secondary);
+    font-weight: 700;
+    margin-right: 8px; /* Space between meal type and description */
+}
+
+.meal-item .meal-controls {
+    display: flex;
+    align-items: center;
+    margin-left: auto; /* Push controls to the right */
+    gap: 10px;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+.meal-item input[type="time"] {
+    background-color: var(--color-input-background);
+    color: var(--color-text-light);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s;
+}
+
+.meal-item input[type="time"]:focus {
+    border-color: var(--color-secondary);
+    outline: none;
+}
+
+.exercise-list {
+    list-style-type: none;
+    margin-top: 20px;
+}
+
+.exercise-item {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-left: 4px solid var(--color-primary);
+    transition: all 0.3s ease;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 0 var(--border-radius-base) var(--border-radius-base) 0;
+    position: relative; /* For YouTube link positioning */
+}
+
+.exercise-item.completed {
+    border-left-color: var(--color-secondary);
+    opacity: 0.6;
+}
+
+.exercise-item.completed .exercise-name {
+    text-decoration: line-through;
+    color: var(--color-text-muted);
+}
+
+.exercise-name {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    display: block;
+    color: var(--color-text-highlight);
+}
+
+.youtube-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-top: 5px;
+    transition: color 0.3s;
+}
+
+.youtube-link:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.youtube-link svg {
+    margin-right: 5px;
+    fill: currentColor; /* Inherit color from parent */
+}
+
+.custom-checkbox {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin: 0 10px 5px 0; /* Add bottom margin for stacking */
+    font-size: 0.95rem;
+    color: var(--color-text-light);
+}
+
+.custom-checkbox input {
+    display: none;
+}
+
+.checkmark {
+    min-width: 24px; /* Larger touch target */
+    height: 24px;
+    background-color: var(--color-input-background);
+    border: 2px solid var(--color-border-subtle);
+    border-radius: 6px; /* Slightly more rounded */
+    margin-right: 10px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox:hover .checkmark {
+    border-color: var(--color-primary);
+}
+
+.custom-checkbox input:checked + .checkmark {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.day-card[data-type="recovery"] .custom-checkbox input:checked + .checkmark,
+.meal-item .custom-checkbox input:checked + .checkmark {
+    background-color: var(--color-secondary); /* Green checkmark for food/recovery */
+    border-color: var(--color-secondary);
+}
+
+.checkmark::after {
+    content: '';
+    position: absolute;
+    display: none;
+    left: 8px;
+    top: 4px;
+    width: 5px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+}
+
+.custom-checkbox input:checked + .checkmark::after {
+    display: block;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: var(--color-input-background);
+    border-radius: 5px;
+    margin-top: 20px;
+    overflow: hidden;
+    border: 1px solid var(--color-border-subtle);
+    height: 10px; /* Thinner progress bar */
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    border-radius: 5px;
+    transition: width 0.5s ease-in-out;
+}
+
+p.card-text {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    margin-bottom: 15px;
+}
+
+.missed-workouts-section {
+    background-color: var(--color-card-background);
+    padding: 30px;
+    border-radius: var(--border-radius-base);
+    margin-top: 40px;
+    border: 1px solid var(--color-danger);
+    box-shadow: var(--shadow-elevation-1);
+}
+
+.missed-workouts-section h2 {
+    color: var(--color-danger);
+    border-bottom-color: var(--color-danger);
+    text-shadow: 0 0 8px rgba(231, 76, 60, 0.3);
+}
+
+#missed-workouts-list {
+    list-style-type: none;
+    color: var(--color-text-muted);
+    padding-left: 0;
+}
+
+#missed-workouts-list li {
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--color-border-subtle);
+    font-size: 1rem;
+}
+
+#missed-workouts-list li:last-child {
+    border-bottom: none;
+}
+
+/* Footer Styles */
+.app-footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 50px;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--color-border-subtle);
+    background-color: var(--color-input-background);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        margin: 15px auto;
+        padding: 15px;
+    }
+    h1 {
+        font-size: 2.5rem;
+    }
+    h2 {
+        font-size: 1.8rem;
+    }
+    .profile-inputs {
+        flex-direction: column;
+        gap: 15px;
+    }
+    .profile-inputs input {
+        width: 100%;
+        max-width: 300px;
+    }
+    .profile-actions {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+    }
+    .profile-actions .btn-link,
+    .profile-actions .btn {
+        width: 100%;
+    }
+    .day-card {
+        padding: 20px;
+    }
+    .card-header h3 {
+        font-size: 1.4rem;
+    }
+    .meal-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .meal-item .meal-controls {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 480px) {
+    .welcome-title {
+        font-size: 2.5rem;
+    }
+    .welcome-logo {
+        width: 100px;
+        height: 100px;
+    }
+    h1 {
+        font-size: 2rem;
+    }
+    h2 {
+        font-size: 1.5rem;
+    }
+    .day-card {
+        padding: 15px;
+    }
+    .card-header h3 {
+        font-size: 1.2rem;
+    }
+    .exercise-name {
+        font-size: 1rem;
+    }
+    .custom-checkbox {
+        font-size: 0.9rem;
+    }
+    .checkmark {
+        width: 20px;
+        height: 20px;
+    }
+    .checkmark::after {
+        left: 7px;
+        top: 3px;
+        width: 4px;
+        height: 10px;
+    }
 }

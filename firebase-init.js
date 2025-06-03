@@ -22,29 +22,23 @@ if (typeof firebase !== 'undefined' && typeof firebase.app === 'undefined') {
     console.error("Firebase SDKs not loaded. Please check script tags in HTML.");
 }
 
-
 // Get references to Firebase services
 const auth = firebase.auth();
 const db = firebase.firestore(); // Ensure firestore is initialized if you're using db
 
-// Get references to our HTML elements (these might be undefined if firebase-init.js is loaded without index.html)
-const authContainer = document.getElementById('auth-container');
-const appContainer = document.getElementById('app-container');
-const logoutBtn = document.getElementById('logout-btn');
-
+// Get references to our HTML elements (these might be undefined if firebase-init.js is loaded without auth.html)
+// These elements are primarily for auth.html
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const authToggle = document.getElementById('auth-toggle');
 const authTitle = document.getElementById('auth-title');
 const authError = document.getElementById('auth-error');
-
+const logoutBtn = document.getElementById('logout-btn'); // For index.html
 
 // --- AUTHENTICATION LOGIC ---
 
-// This entire block might only be relevant if firebase-init.js is included in auth.html
-// However, the current setup implies it's also loaded in index.html, so it's placed here.
-
-if (authToggle) { // Only add listener if element exists
+// This block handles the login/signup form interactions on auth.html
+if (authToggle) { // Only add listener if element exists (i.e., on auth.html)
     authToggle.addEventListener('click', () => {
         loginForm.classList.toggle('hidden');
         signupForm.classList.toggle('hidden');
@@ -56,14 +50,18 @@ if (authToggle) { // Only add listener if element exists
             authTitle.textContent = 'Sign Up';
             authToggle.textContent = 'Have an account? Login';
         }
+        if (authError) authError.textContent = ''; // Clear error on toggle
     });
 }
 
-if (signupForm) { // Only add listener if form exists
+if (signupForm) { // Only add listener if form exists (i.e., on auth.html)
     signupForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
+
+        // Clear previous errors
+        if (authError) authError.textContent = '';
 
         auth.createUserWithEmailAndPassword(email, password)
             .then((userCredential) => {
@@ -72,17 +70,20 @@ if (signupForm) { // Only add listener if form exists
                 window.location.href = './index.html'; 
             })
             .catch(err => {
-                console.error(err);
+                console.error("Signup error:", err);
                 if (authError) authError.textContent = err.message;
             });
     });
 }
 
-if (loginForm) { // Only add listener if form exists
+if (loginForm) { // Only add listener if form exists (i.e., on auth.html)
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
+
+        // Clear previous errors
+        if (authError) authError.textContent = '';
 
         auth.signInWithEmailAndPassword(email, password)
             .then((userCredential) => {
@@ -91,44 +92,52 @@ if (loginForm) { // Only add listener if form exists
                 window.location.href = './index.html'; 
             })
             .catch(err => {
-                console.error(err);
+                console.error("Login error:", err);
                 if (authError) authError.textContent = err.message;
             });
     });
 }
 
-if (logoutBtn) { // Only add listener if button exists
+if (logoutBtn) { // Only add listener if button exists (i.e., on index.html)
     logoutBtn.addEventListener('click', () => {
-        auth.signOut();
+        auth.signOut()
+            .then(() => {
+                console.log("User signed out.");
+                window.location.href = './auth.html'; // Redirect to login page after logout
+            })
+            .catch(err => {
+                console.error("Logout error:", err);
+            });
     });
 }
 
 // Auth State Observer: This is the most important part.
 // It checks if a user is logged in or out and shows/hides the correct content.
 auth.onAuthStateChanged(user => {
-    if (authContainer && appContainer) { // Ensure these elements exist before manipulating
-        if (user) {
-            // User is logged in
-            authContainer.classList.add('hidden');
-            appContainer.classList.remove('hidden');
-            if (authError) authError.textContent = ''; // Clear any previous errors
-            
-            // Initialize the main app UI with the user's data
-            // This function is defined in main.js
+    // Determine the current page
+    const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
+    const isIndexPage = window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/index') || window.location.pathname === '/'; // Handles root path
+
+    if (user) {
+        // User is logged in
+        if (isAuthPage) {
+            // If on auth page but logged in, redirect to index.html
+            window.location.href = './index.html';
+        } else if (isIndexPage || window.location.pathname.endsWith('/grocery_list.html')) {
+            // If on index or grocery list page and logged in, ensure app UI is initialized
+            // This function is defined in index.html's script
             if (typeof initializeAppUI === 'function') {
                 initializeAppUI(user);
             } else {
-                console.warn("initializeAppUI function not found. Ensure main.js is loaded correctly.");
-            }
-
-        } else {
-            // User is logged out
-            authContainer.classList.remove('hidden');
-            appContainer.classList.add('hidden');
-            // Redirect to auth.html if logged out and not already there
-            if (!window.location.pathname.endsWith('/auth.html')) {
-                 window.location.href = './auth.html'; // This will redirect to auth.html if the user is not logged in
+                console.warn("initializeAppUI function not found. Ensure index.html is loaded correctly and defines it.");
             }
         }
+    } else {
+        // User is logged out
+        if (!isAuthPage) {
+            // If not on auth page and logged out, redirect to auth.html
+            window.location.href = './auth.html';
+        }
+        // If already on auth page and logged out, do nothing (stay on auth page)
     }
 });
