@@ -20,8 +20,8 @@
         .back-link:hover { background-color: #0056b3; transform: translateY(-2px); box-shadow: var(--shadow-elevation-2); }
         .deals-section { background-color: var(--color-card-background); padding: 30px; border-radius: var(--border-radius-base); margin-bottom: 40px; border: 1px solid var(--color-border-subtle); box-shadow: var(--shadow-elevation-1); }
         .deals-section h2 { font-size: 2rem; color: var(--color-tertiary); border-bottom: 2px solid var(--color-border-subtle); padding-bottom: 15px; margin-top: 0; margin-bottom: 25px; text-align: center; }
-        #findDealsBtn, #generateMealIdeasBtn { display: block; width: 100%; padding: 15px; font-size: 1.2rem; font-weight: 600; background: linear-gradient(45deg, var(--color-tertiary), #8e44ad); color: #fff; border: none; border-radius: var(--border-radius-base); cursor: pointer; transition: background 0.3s, transform 0.2s, box-shadow 0.3s; margin-bottom: 20px; box-shadow: var(--shadow-elevation-1); }
-        #findDealsBtn:hover, #generateMealIdeasBtn:hover { background: linear-gradient(45deg, #8e44ad, var(--color-tertiary)); transform: translateY(-2px); box-shadow: var(--shadow-elevation-2); }
+        #findDealsBtn /*, #generateMealIdeasBtn */ { display: block; width: 100%; padding: 15px; font-size: 1.2rem; font-weight: 600; background: linear-gradient(45deg, var(--color-tertiary), #8e44ad); color: #fff; border: none; border-radius: var(--border-radius-base); cursor: pointer; transition: background 0.3s, transform 0.2s, box-shadow 0.3s; margin-bottom: 20px; box-shadow: var(--shadow-elevation-1); }
+        #findDealsBtn:hover /*, #generateMealIdeasBtn:hover */ { background: linear-gradient(45deg, #8e44ad, var(--color-tertiary)); transform: translateY(-2px); box-shadow: var(--shadow-elevation-2); }
         #deals-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
         .deal-card { background-color: var(--color-input-background); border: 1px solid var(--color-border-subtle); padding: 20px; border-radius: var(--border-radius-base); box-shadow: var(--shadow-elevation-1); transition: transform 0.2s ease; }
         .deal-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-elevation-2); }
@@ -64,9 +64,7 @@
         <div class="deals-section">
             <h2>Nearby Deals</h2>
             <button id="findDealsBtn">Find Deals Near Me</button>
-            {/* Gemini Button Disabled as per request */}
-            <div id="deals-container">
-                </div>
+            <div id="deals-container"></div>
         </div>
 
         <div class="add-item-form">
@@ -74,8 +72,7 @@
             <button id="addItemBtn">Add Item</button>
         </div>
 
-        <div id="full-grocery-list">
-            </div>
+        <div id="full-grocery-list"></div>
 
         <div class="controls">
             <button class="clear-btn" id="clearCheckedBtn">Clear Checked Items</button>
@@ -89,7 +86,7 @@
     <script>
     let currentUser = null; 
 
-    // --- NECESSARY DATA: Copied from your index.html for this page to function ---
+    // --- COMPLETE WORKOUTPROGRAMS DATA (Copied from your index.html) ---
     const workoutPrograms = [
         {
             id: '3-week-bootcamp', name: '3-Week Bootcamp (Weight Loss & Toning)', goal: 'Focuses on full-body conditioning, fat loss, and muscle definition.', duration: '3 Weeks',
@@ -157,13 +154,12 @@
                 { title: 'Strength & Conditioning (Full Body)', type: 'strength', quote: "Transform your body, transform your life.", exercises: [{ name: 'Barbell Squats', sets: 4, reps: '8-10' }, { name: 'Bench Press', sets: 4, reps: '8-10' }, { name: 'Bent-Over Rows', sets: 4, reps: '8-10' }, { name: 'Overhead Press', sets: 3, reps: '10-12' }], meals: { breakfast: 'Oatmeal with protein powder, mixed berries, and flax seeds.', lunch: 'Large chicken salad with mixed greens, cucumber, tomatoes, and a light vinaigrette.', dinner: 'Baked cod (6oz) with quinoa (1 cup cooked) and steamed green beans.', snacks: 'Apple with peanut butter.' } },
                 { title: 'HIIT & Core Blast', type: 'cardio', quote: "No pain, no gain... but smart pain!", description: '30 minutes of high-intensity interval training (e.g., burpees, jump squats, sprints) followed by 15 minutes of dynamic core exercises.', meals: { breakfast: 'Greek yogurt (1.5 cups) with sliced banana and a sprinkle of chia seeds.', lunch: 'Turkey breast slices (5oz) with a large mixed vegetable salad.', dinner: 'Lentil and vegetable curry with a small portion of brown rice.', snacks: 'Handful of almonds.' } },
                 { title: 'Active Recovery & Flexibility', type: 'recovery', quote: "The body achieves what the mind believes.", description: '45 minutes of foam rolling, dynamic stretching, and light yoga poses.', meals: { breakfast: 'Scrambled eggs (3) with spinach and a slice of whole-grain toast.', lunch: 'Leftover lentil curry.', dinner: 'Grilled salmon (6oz) with roasted asparagus and a side salad.', snacks: 'Protein shake.' } }
-                // ... (This program would have many more days)
+                // This program would have many more days, filled in similarly
             ]
         }
     ];
-    // End of workoutPrograms data
+    // --- End of workoutPrograms data ---
 
-    // Renamed from initializeAppUI to avoid conflict with index.html
     function initializeGroceryUI(user) {
         currentUser = user; 
 
@@ -173,7 +169,7 @@
         const clearCheckedBtn = document.getElementById('clearCheckedBtn');
         const findDealsBtn = document.getElementById('findDealsBtn');
         const dealsContainer = document.getElementById('deals-container');
-        // const generateMealIdeasBtn = document.getElementById('generateMealIdeasBtn'); // Button is commented out in HTML
+        // const generateMealIdeasBtn = document.getElementById('generateMealIdeasBtn'); // Button is commented out
 
         const userDocRef = db.collection('users').doc(currentUser.uid);
 
@@ -182,7 +178,6 @@
                 const userProfile = await userDocRef.get();
                 if (userProfile.exists && userProfile.data().selectedProgramId) {
                     const selectedProgramId = userProfile.data().selectedProgramId;
-                    // Use the workoutPrograms array defined in *this* script
                     const selectedProgram = workoutPrograms.find(p => p.id === selectedProgramId);
 
                     if (selectedProgram) {
@@ -190,7 +185,7 @@
                         await renderList(categorizedItems);
                     } else {
                         console.warn("Selected program not found in local workoutPrograms data:", selectedProgramId);
-                        await renderList({});
+                        await renderList({}); 
                     }
                 } else {
                     console.log("No selected program found in user profile. Displaying empty grocery list.");
@@ -202,44 +197,49 @@
             }
         }
 
-        // Your original function to parse ingredients from meal plans
         function generateGroceryListFromProgram(program) {
-            const allItems = new Set(); 
+            const allProcessedItems = new Set(); 
             const categorizedItems = {};
 
             program.days.forEach(day => {
                 if (day.meals) {
                     for (const mealType in day.meals) {
                         const mealDescription = day.meals[mealType];
-                        const extracted = mealDescription.match(/\b(\w+\s?\w*)\b/g);
+                        const extracted = mealDescription.match(/\b([\w'-]+(?:\s+[\w'-]+)*)\b/g); 
                         if (extracted) {
                             extracted.forEach(item => {
-                                let cleanedItem = item.toLowerCase().replace(/^(a|an|the|with|of|small|large|cup|slices|scoop|tbsp|oz|cooked|raw|diced|chopped|grilled|baked|roasted|steamed|lean|canned|mixed|fresh|frozen|organic|sugar-free|light|whole-grain|medium|large|extra|few|plenty|small|portion|side)\s/g, '').trim();
-                                if (cleanedItem.endsWith('s') && !cleanedItem.endsWith('ss') && cleanedItem !== 'hummus' && cleanedItem !== 'asparagus') { // Avoid changing 'hummus', 'asparagus'
+                                let cleanedItem = item.toLowerCase()
+                                    .replace(/\(([^)]+)\)/g, '') // Remove text in parentheses
+                                    .replace(/\b(cup|tbsp|oz|gram|grams|slice|slices|scoop|piece|pieces|large|medium|small|some|a|an|the|with|of|and|or|for|to|in|on|dry|cooked|raw|diced|chopped|grilled|baked|roasted|steamed|lean|canned|mixed|fresh|frozen|organic|sugar-free|light|whole-grain|extra|few|plenty|portion|side)\b/g, '')
+                                    .replace(/[^a-zA-Z\s'-]/g, '') // Remove special characters except space, apostrophe, hyphen
+                                    .trim();
+                                
+                                if (cleanedItem.endsWith('s') && !cleanedItem.endsWith('ss') && cleanedItem !== 'hummus' && cleanedItem !== 'asparagus' && cleanedItem !== 'oats' && cleanedItem !== 'flax seeds' && cleanedItem !== 'chia seeds' && cleanedItem !== 'lentils' && cleanedItem.length > 3) {
                                     if (cleanedItem.endsWith('ies')) {
-                                      cleanedItem = cleanedItem.slice(0, -3) + 'y'; // e.g. berries -> berry
+                                      cleanedItem = cleanedItem.slice(0, -3) + 'y';
                                     } else {
-                                      cleanedItem = cleanedItem.slice(0, -1); // e.g. eggs -> egg
+                                      cleanedItem = cleanedItem.slice(0, -1); 
                                     }
                                 }
-                                
-                                if (cleanedItem.length > 2 && !['and', 'or', 'for', 'to', 'in', 'on'].includes(cleanedItem)) { 
-                                    cleanedItem = cleanedItem.charAt(0).toUpperCase() + cleanedItem.slice(1); // Capitalize
+                                cleanedItem = cleanedItem.replace(/\s+/g, ' ').trim(); // Normalize multiple spaces
+
+                                if (cleanedItem.length > 2) { 
+                                    let capitalizedItem = cleanedItem.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                                     
-                                    if (allItems.has(cleanedItem.toLowerCase())) continue; // Check uniqueness case-insensitively
-                                    allItems.add(cleanedItem.toLowerCase());
+                                    if (allProcessedItems.has(capitalizedItem.toLowerCase())) return; 
+                                    allProcessedItems.add(capitalizedItem.toLowerCase());
 
                                     let category = "Miscellaneous"; 
-                                    if (['chicken', 'fish', 'turkey', 'salmon', 'tuna', 'shrimp', 'beef', 'egg', 'protein'].some(kw => cleanedItem.toLowerCase().includes(kw))) category = "Protein";
-                                    else if (['berry', 'spinach', 'avocado', 'asparagus', 'tomato', 'banana', 'onion', 'garlic', 'pineapple', 'bean', 'carrot', 'brussels sprout', 'broccoli', 'cauliflower', 'zucchini', 'kale', 'cucumber', 'bell pepper', 'mushroom', 'lettuce', 'celery', 'apple', 'orange', 'pear', 'peach', 'fruit', 'vegetable', 'potato', 'sweet potato'].some(kw => cleanedItem.toLowerCase().includes(kw))) category = "Produce";
-                                    else if (['yogurt', 'cottage cheese', 'milk', 'cheese'].some(kw => cleanedItem.toLowerCase().includes(kw))) category = "Dairy & Alternatives";
-                                    else if (['quinoa', 'toast', 'bread', 'rice', 'oat', 'oatmeal', 'lentil', 'almond butter', 'peanut butter', 'flax', 'almond', 'walnut', 'granola', 'chickpea', 'nut', 'seed', 'cracker', 'tortilla', 'pancake', 'syrup', 'cereal'].some(kw => cleanedItem.toLowerCase().includes(kw))) category = "Pantry";
+                                    if (['chicken', 'fish', 'turkey', 'salmon', 'tuna', 'shrimp', 'beef', 'egg', 'protein'].some(kw => capitalizedItem.toLowerCase().includes(kw))) category = "Protein";
+                                    else if (['berry', 'berries','spinach', 'avocado', 'asparagus', 'tomato', 'banana', 'onion', 'garlic', 'pineapple', 'bean', 'beans', 'carrot', 'brussels sprout', 'broccoli', 'cauliflower', 'zucchini', 'kale', 'cucumber', 'bell pepper', 'mushroom', 'lettuce', 'celery', 'apple', 'orange', 'pear', 'peach', 'fruit', 'vegetable', 'potato', 'sweet potato', 'green', 'mixed green', 'salad', 'veggies'].some(kw => capitalizedItem.toLowerCase().includes(kw))) category = "Produce";
+                                    else if (['yogurt', 'cottage cheese', 'milk', 'cheese'].some(kw => capitalizedItem.toLowerCase().includes(kw))) category = "Dairy & Alternatives";
+                                    else if (['quinoa', 'toast', 'bread', 'rice', 'oat', 'oats', 'oatmeal', 'lentil', 'lentils', 'almond butter', 'peanut butter', 'flax', 'flax seed', 'chia seed', 'almond', 'walnut', 'granola', 'chickpea', 'nut', 'seed', 'cracker', 'tortilla', 'pancake', 'syrup', 'cereal', 'pasta', 'powder'].some(kw => capitalizedItem.toLowerCase().includes(kw))) category = "Pantry";
                                     
                                     if (!categorizedItems[category]) {
                                         categorizedItems[category] = [];
                                     }
-                                    if (!categorizedItems[category].includes(cleanedItem)) {
-                                      categorizedItems[category].push(cleanedItem);
+                                    if (!categorizedItems[category].includes(capitalizedItem)) {
+                                      categorizedItems[category].push(capitalizedItem);
                                     }
                                 }
                             });
@@ -258,49 +258,97 @@
                 showCustomModal("Geolocation is not supported by your browser.");
                 return;
             }
-            // NOTE: For Geolocation to work, your site must be served over HTTPS.
+            dealsContainer.innerHTML = '<p style="text-align:center; color:var(--color-text-muted);">Attempting to get location... Ensure HTTPS is used and permissions are granted.</p>';
             findDealsBtn.textContent = "Finding deals...";
             findDealsBtn.disabled = true;
-            navigator.geolocation.getCurrentPosition(success, error);
+            navigator.geolocation.getCurrentPosition(success, error, { timeout: 10000 });
         });
 
         function success(position) {
             dealsContainer.innerHTML = ''; 
             const simulatedDeals = [
-                { store: 'Fortinos', item: 'Chicken Breast', price: '$1.99/lb' },
-                { store: 'Food Basics', item: 'Avocados', price: '5 for $4.00' },
-                { store: 'Sobeys', item: 'Greek Yogurt', price: '$4.99' },
+                { store: 'Local Grocer A', item: 'Chicken Breast', price: '$1.99/lb (Simulated Deal)' },
+                { store: 'SuperMart B', item: 'Avocados', price: '5 for $4.00 (Simulated Deal)' },
+                { store: 'Fresh Foods C', item: 'Greek Yogurt', price: '$4.99 (Simulated Deal)' },
             ];
-            simulatedDeals.forEach(deal => {
-                const dealCard = document.createElement('div');
-                dealCard.className = 'deal-card';
-                dealCard.innerHTML = `<h3>${deal.item}</h3><p><strong>Store:</strong> ${deal.store}</p><p><strong>Price:</strong> ${deal.price}</p>`;
-                dealsContainer.appendChild(dealCard);
-            });
+            if (simulatedDeals.length === 0) {
+                 dealsContainer.innerHTML = '<p style="text-align:center; color:var(--color-text-muted);">No simulated deals available right now.</p>';
+            } else {
+                simulatedDeals.forEach(deal => {
+                    const dealCard = document.createElement('div');
+                    dealCard.className = 'deal-card';
+                    dealCard.innerHTML = `<h3>${deal.item}</h3><p><strong>Store:</strong> ${deal.store}</p><p><strong>Price:</strong> ${deal.price}</p>`;
+                    dealsContainer.appendChild(dealCard);
+                });
+            }
             findDealsBtn.textContent = "Find Deals Near Me";
             findDealsBtn.disabled = false;
         }
 
-        function error() {
-            showCustomModal("Unable to retrieve your location. Please ensure location services are enabled for your browser and that the page is served over HTTPS.");
+        function error(err) {
+            console.warn(`Geolocation ERROR(${err.code}): ${err.message}`);
+            let message = "Unable to retrieve your location. Please ensure location services are enabled and you've granted permission. This feature also requires your site to be served over HTTPS.";
+            if (err.code === 1) message = "Location permission denied. Please enable it in your browser settings.";
+            if (err.code === 2) message = "Location information is unavailable.";
+            if (err.code === 3) message = "Location request timed out.";
+            dealsContainer.innerHTML = `<p style="text-align:center; color:var(--color-danger);">${message}</p>`;
+            showCustomModal(message);
             findDealsBtn.textContent = "Find Deals Near Me";
             findDealsBtn.disabled = false;
         }
         
-        function showCustomModal(message, onConfirm = null) { /* Your existing modal function */ }
+        function showCustomModal(message, onConfirm = null) {
+            const modalId = 'custom-app-modal';
+            let modal = document.getElementById(modalId);
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = modalId;
+                modal.style.cssText = `position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease;`;
+                modal.innerHTML = `<div style="background-color: var(--color-card-background); padding: 30px; border-radius: var(--border-radius-base); box-shadow: var(--shadow-elevation-2); text-align: center; max-width: 400px; width: 90%; border: 1px solid var(--color-border-subtle); transform: translateY(-20px); transition: transform 0.3s ease;"><p id="modal-message" style="font-size: 1.1rem; color: var(--color-text-light); margin-bottom: 25px;"></p><div id="modal-actions"><button id="modal-ok-btn" style="background-color: var(--color-primary); color: white; padding: 10px 20px; border: none; border-radius: var(--border-radius-base); cursor: pointer; font-weight: 600; transition: background-color 0.3s; margin: 0 5px;">OK</button><button id="modal-cancel-btn" style="background-color: var(--color-secondary); color: white; padding: 10px 20px; border: none; border-radius: var(--border-radius-base); cursor: pointer; font-weight: 600; transition: background-color 0.3s; margin: 0 5px; display: none;">Cancel</button></div></div>`;
+                document.body.appendChild(modal);
+            }
+            const modalMessageElement = document.getElementById('modal-message');
+            if (typeof message === 'string' && message.includes('<')) { // Allow HTML content
+                 modalMessageElement.innerHTML = message;
+            } else {
+                 modalMessageElement.textContent = message;
+            }
+            const okBtn = document.getElementById('modal-ok-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+            const modalContent = modal.querySelector('div');
+
+            okBtn.onclick = () => {
+                modal.style.opacity = '0';
+                modalContent.style.transform = 'translateY(-20px)';
+                setTimeout(() => { modal.style.visibility = 'hidden'; }, 300);
+                if (onConfirm) onConfirm(true);
+            };
+            if (onConfirm) {
+                cancelBtn.style.display = 'inline-block';
+                cancelBtn.onclick = () => {
+                    modal.style.opacity = '0';
+                    modalContent.style.transform = 'translateY(-20px)';
+                    setTimeout(() => { modal.style.visibility = 'hidden'; }, 300);
+                    onConfirm(false);
+                };
+            } else {
+                cancelBtn.style.display = 'none';
+            }
+            modal.style.visibility = 'visible';
+            modal.style.opacity = '1';
+            modalContent.style.transform = 'translateY(0)';
+        }
         
         async function renderList(categorizedItemsFromProgram) {
             listContainer.innerHTML = ''; 
             const allItemCreationPromises = [];
 
-            // Program-generated items
             for (const category in categorizedItemsFromProgram) {
                 categorizedItemsFromProgram[category].forEach(itemName => {
                     allItemCreationPromises.push(createGroceryItem(itemName, category));
                 });
             }
 
-            // Custom items from Firestore
             try {
                 const customItemsDoc = await userDocRef.collection('grocery_custom_items').doc('items').get();
                 if (customItemsDoc.exists) {
@@ -318,7 +366,7 @@
             const finalCategories = {};
             resolvedListElements.forEach(liElement => {
                 if (liElement) { 
-                    const category = liElement.dataset.category; // Ensure createGroceryItem sets this
+                    const category = liElement.dataset.category;
                     if (!finalCategories[category]) {
                         finalCategories[category] = [];
                     }
@@ -327,26 +375,29 @@
             });
 
             const sortedCategoryNames = Object.keys(finalCategories).sort((a,b) => {
-                // Ensure "Produce", "Protein", "Dairy", "Pantry" come first if they exist
-                const order = ["Produce", "Protein", "Dairy & Alternatives", "Pantry"];
+                const order = ["Produce", "Protein", "Dairy & Alternatives", "Pantry", "Miscellaneous", "My Added Items"];
                 const indexA = order.indexOf(a);
                 const indexB = order.indexOf(b);
                 if (indexA !== -1 && indexB !== -1) return indexA - indexB;
                 if (indexA !== -1) return -1;
                 if (indexB !== -1) return 1;
-                return a.localeCompare(b); // Default sort for other categories
+                return a.localeCompare(b);
             });
 
-            sortedCategoryNames.forEach(categoryName => {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'grocery-category';
-                categoryDiv.innerHTML = `<h2>${categoryName}</h2>`;
-                const list = document.createElement('ul');
-                list.className = 'grocery-list';
-                finalCategories[categoryName].forEach(li => list.appendChild(li));
-                categoryDiv.appendChild(list);
-                listContainer.appendChild(categoryDiv);
-            });
+            if (sortedCategoryNames.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--color-text-muted); padding: 20px;">Your grocery list is currently empty. Select a workout plan or add custom items!</p>';
+            } else {
+                sortedCategoryNames.forEach(categoryName => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'grocery-category';
+                    categoryDiv.innerHTML = `<h2>${categoryName}</h2>`;
+                    const list = document.createElement('ul');
+                    list.className = 'grocery-list';
+                    finalCategories[categoryName].forEach(li => list.appendChild(li));
+                    categoryDiv.appendChild(list);
+                    listContainer.appendChild(categoryDiv);
+                });
+            }
 
             document.querySelectorAll('.grocery-item input[type="checkbox"]').forEach(checkbox => {
                 checkbox.removeEventListener('change', handleCheckboxChange); 
@@ -355,29 +406,43 @@
         }
         
         async function createGroceryItem(itemName, category) {
-            const itemId = `grocery-${category.replace(/[\s&]+/g, '-')}-${itemName.replace(/\s+/g, '-')}`; // Sanitize ID
+            const itemId = `grocery-${category.replace(/[\s&]+/g, '-')}-${itemName.replace(/[\s&]+/g, '-')}`;
             const li = document.createElement('li');
             li.className = 'grocery-item';
             li.id = `li-${itemId}`;
-            li.dataset.category = category; // Add data-category attribute
+            li.dataset.category = category;
 
-            const itemDoc = await userDocRef.collection('grocery_item_states').doc(itemId).get();
-            const isChecked = itemDoc.exists ? itemDoc.data().checked : false;
-            
-            if (isChecked) li.classList.add('checked');
-            li.innerHTML = `<label class="custom-checkbox"><input type="checkbox" id="${itemId}" ${isChecked ? 'checked' : ''}><span class="checkmark"></span></label><span class="item-name">${itemName}</span>`;
-            return li;
+            try {
+                const itemDoc = await userDocRef.collection('grocery_item_states').doc(itemId).get();
+                const isChecked = itemDoc.exists ? itemDoc.data().checked : false;
+                
+                if (isChecked) li.classList.add('checked');
+                li.innerHTML = `<label class="custom-checkbox"><input type="checkbox" id="${itemId}" ${isChecked ? 'checked' : ''}><span class="checkmark"></span></label><span class="item-name">${itemName}</span>`;
+                return li;
+            } catch (e) {
+                console.error(`Error fetching state for ${itemName}:`, e);
+                // Return a basic item even if Firestore fetch fails for its state
+                li.innerHTML = `<label class="custom-checkbox"><input type="checkbox" id="${itemId}"><span class="checkmark"></span></label><span class="item-name">${itemName} (State error)</span>`;
+                return li;
+            }
         }
 
         function handleCheckboxChange(e) {
             const checkbox = e.target;
             const itemId = checkbox.id;
             const isChecked = checkbox.checked;
+            const listItem = document.getElementById(`li-${itemId}`);
+            if (listItem) { // Ensure element exists before toggling class
+                listItem.classList.toggle('checked', isChecked);
+            }
             userDocRef.collection('grocery_item_states').doc(itemId).set({ checked: isChecked }, { merge: true })
-                .then(() => {
-                    document.getElementById(`li-${itemId}`).classList.toggle('checked', isChecked);
-                })
-                .catch(err => console.error("Error saving grocery item state:", err));
+                .catch(err => {
+                    console.error("Error saving grocery item state:", err);
+                    // Optionally revert UI change if save fails
+                    if (listItem) listItem.classList.toggle('checked', !isChecked); 
+                    checkbox.checked = !isChecked;
+                    showCustomModal("Error saving item state. Please try again.");
+                });
         }
 
         async function addCustomItem() {
@@ -407,6 +472,11 @@
                 if (confirmed) {
                     try {
                         const checkedGroceryItemElements = document.querySelectorAll('.grocery-item.checked input[type="checkbox"]');
+                        if (checkedGroceryItemElements.length === 0) {
+                            showCustomModal("No items are currently checked.");
+                            return;
+                        }
+
                         const batch = db.batch();
                         let customItemsModified = false;
                         let currentCustomItems = [];
@@ -421,6 +491,8 @@
                         checkedGroceryItemElements.forEach(checkbox => {
                             const itemId = checkbox.id;
                             const listItemElement = checkbox.closest('.grocery-item');
+                            if (!listItemElement) return; 
+
                             const itemName = listItemElement.querySelector('.item-name').textContent;
                             const itemCategory = listItemElement.dataset.category;
 
@@ -453,26 +525,84 @@
         addItemBtn.addEventListener('click', addCustomItem);
         newItemInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addCustomItem(); });
         clearCheckedBtn.addEventListener('click', clearCheckedItems);
-
-        // If you re-enable the "Generate Meal Ideas" button, this is its listener:
-        // const generateMealIdeasBtn = document.getElementById('generateMealIdeasBtn'); 
+        
+        // Logic for "Generate Meal Ideas" button (currently commented out in HTML)
+        // const generateMealIdeasBtn = document.getElementById('generateMealIdeasBtn');
         // if (generateMealIdeasBtn) {
         //     generateMealIdeasBtn.addEventListener('click', async () => {
         //         generateMealIdeasBtn.disabled = true;
         //         generateMealIdeasBtn.textContent = 'Generating...';
         //         showCustomModal("Generating meal ideas... This may take a moment. Please do not close this window.");
         //         try {
-        //             // ... (Your existing Gemini call logic)
-        //             // IMPORTANT: Remember to replace const apiKey = ""; with your actual key
-        //         } catch (error) { /* ... */ }
-        //         finally { /* ... */ }
+        //             const allGroceryItems = [];
+        //             document.querySelectorAll('.grocery-item .item-name').forEach(span => {
+        //                 allGroceryItems.push(span.textContent);
+        //             });
+
+        //             if (allGroceryItems.length === 0) {
+        //                 showCustomModal("Your grocery list is empty. Add some items first to generate meal ideas!");
+        //                 generateMealIdeasBtn.disabled = false;
+        //                 generateMealIdeasBtn.textContent = '✨ Generate Meal Ideas';
+        //                 return;
+        //             }
+
+        //             let chatHistory = [];
+        //             const promptText = `Given the following grocery list items: ${allGroceryItems.join(', ')}. Generate 3-5 simple, healthy meal ideas (each including a name and a brief description of ingredients/preparation) that can be made using these ingredients. Prioritize using multiple items from the list in each meal. Return the response as a JSON array of objects, where each object has 'mealName' (string) and 'description' (string).`;
+        //             chatHistory.push({ role: "user", parts: [{ text: promptText }] });
+                    
+        //             const payload = {
+        //                 contents: chatHistory,
+        //                 generationConfig: {
+        //                     responseMimeType: "application/json",
+        //                     responseSchema: { type: "ARRAY", items: { type: "OBJECT", properties: { "mealName": { "type": "STRING" }, "description": { "type": "STRING" } }, "required": ["mealName", "description"] } }
+        //                 }
+        //             };
+
+        //             const apiKey = "YOUR_GEMINI_API_KEY_HERE"; // <-- IMPORTANT: ADD YOUR KEY HERE
+        //             if (apiKey === "YOUR_GEMINI_API_KEY_HERE" || apiKey === "") {
+        //                 showCustomModal("Gemini API key is missing. Please add your API key to the script to use this feature.");
+        //                 generateMealIdeasBtn.disabled = false;
+        //                 generateMealIdeasBtn.textContent = '✨ Generate Meal Ideas';
+        //                 return;
+        //             }
+
+        //             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        //             const response = await fetch(apiUrl, {
+        //                 method: 'POST',
+        //                 headers: { 'Content-Type': 'application/json' },
+        //                 body: JSON.stringify(payload)
+        //             });
+
+        //             const result = await response.json();
+        //             if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts) {
+        //                 const jsonString = result.candidates[0].content.parts[0].text;
+        //                 const mealIdeas = JSON.parse(jsonString);
+
+        //                 let mealIdeasHtml = '<h3 style="color: var(--color-primary); margin-bottom: 15px;">✨ Your Meal Ideas</h3><ul style="list-style: none; padding: 0;">';
+        //                 mealIdeas.forEach(meal => {
+        //                     mealIdeasHtml += `<li style="background-color: var(--color-input-background); padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--color-border-subtle); text-align: left;"><strong style="color: var(--color-secondary); font-size: 1.1rem;">${meal.mealName}</strong><p style="color: var(--color-text-light); margin-top: 5px; font-size: 0.95rem;">${meal.description}</p></li>`;
+        //                 });
+        //                 mealIdeasHtml += '</ul>';
+        //                 showCustomModal(mealIdeasHtml, null);
+        //             } else {
+        //                 showCustomModal("Failed to generate meal ideas. Please try again.");
+        //                 console.error("LLM response structure unexpected:", result);
+        //             }
+        //         } catch (error) {
+        //             showCustomModal("An error occurred while generating meal ideas: " + error.message);
+        //             console.error("Error calling Gemini API:", error);
+        //         } finally {
+        //             if(generateMealIdeasBtn) { // Check if button exists
+        //                 generateMealIdeasBtn.disabled = false;
+        //                 generateMealIdeasBtn.textContent = '✨ Generate Meal Ideas';
+        //             }
+        //         }
         //     });
         // }
         
         loadAndRenderGroceryList();
     }
 
-    // Robust Authentication Listener
     document.addEventListener('DOMContentLoaded', () => {
         firebase.auth().onAuthStateChanged(user => {
             const path = window.location.pathname;
@@ -480,18 +610,15 @@
             const isAuthPage = path.endsWith('/auth.html');
 
             if (user) {
-                // User is signed IN
                 if (isAuthPage) {
-                    window.location.href = './index.html'; // Should be main app page
+                    window.location.href = './index.html';
                     return;
                 }
-                
                 if (isGroceryPage) {
                     initializeGroceryUI(user);
                 }
             } else {
-                // User is signed OUT
-                if (!isAuthPage && isGroceryPage) { // Only redirect if on grocery page and not auth page
+                if (!isAuthPage && isGroceryPage) { 
                     window.location.href = './auth.html';
                 }
             }
