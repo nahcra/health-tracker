@@ -448,7 +448,7 @@
             const progressBar = card.querySelector('.progress-bar');
             if (progressBar) {
                 const exCheckboxes = card.querySelectorAll('.exercise-item input[type="checkbox"]');
-                const checkedCount = card.querySelectorAll('.exercise-item input[type="checkbox"]:checked').length;
+                const checkedCount = card.querySelectorAll('.exercise-item input[type="checkbox']:checked').length;
                 progressBar.style.width = exCheckboxes.length > 0 ? (checkedCount / exCheckboxes.length) * 100 + '%' : '0%';
                 exCheckboxes.forEach(cb => {
                     const item = cb.closest('.exercise-item');
@@ -549,12 +549,12 @@
                 const payload = {
                     contents: chatHistory,
                     generationConfig: {
-                        "responseMimeType": "application/json",
-                        "responseSchema": { // All keys within responseSchema must be quoted
-                            "type": "OBJECT",
-                            "properties": {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
                                 "title": { "type": "STRING" },
-                                "type": { "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] }, 
+                                "type": { "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] },
                                 "quote": { "type": "STRING" },
                                 "description": { "type": "STRING", "nullable": true },
                                 "exercises": {
@@ -580,7 +580,7 @@
                                     },
                                     "required": ["breakfast", "lunch", "dinner", "snacks"]
                                 }
-                            }, // Missing comma here was the problem!
+                            },
                             "required": ["title", "type", "quote", "meals"]
                         }
                     }
