@@ -92,7 +92,6 @@
         const generateWorkoutBtn = document.getElementById('generateWorkoutBtn');
         const welcomeScreen = document.querySelector('.welcome-screen');
 
-        // ******** FIX: MOVED workoutPrograms TO THE TOP ********
         // This data needs to be defined before any function that uses it is called.
         const workoutPrograms = [
             {
@@ -432,7 +431,6 @@
         }
 
         // --- INITIAL LOAD & EVENT LISTENERS ---
-        // Expose workoutPrograms globally for grocery_list.html
         window.workoutPrograms = workoutPrograms;
 
         populateProgramSelect();
@@ -556,38 +554,60 @@
             if (!modal) {
                 modal = document.createElement('div');
                 modal.id = modalId;
-                modal.style.cssText = `...`; // Using placeholder to shorten
-                modal.innerHTML = `...`; // Using placeholder to shorten
+                modal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center;
+                    z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
+                `;
+                modal.innerHTML = `
+                    <div style="background-color: var(--color-card-background); padding: 30px; border-radius: var(--border-radius-base);
+                                 box-shadow: var(--shadow-elevation-2); text-align: center; max-width: 500px; width: 90%;
+                                 border: 1px solid var(--color-border-subtle); transform: translateY(-20px); transition: transform 0.3s ease;">
+                        <p id="modal-message" style="font-size: 1.1rem; color: var(--color-text-light); margin-bottom: 25px;"></p>
+                        <div id="modal-actions">
+                            <button id="modal-ok-btn" style="background-color: var(--color-primary); color: white; padding: 10px 20px;
+                                 border: none; border-radius: var(--border-radius-base); cursor: pointer; font-weight: 600;
+                                 transition: background-color 0.3s; margin: 0 5px;">OK</button>
+                            <button id="modal-cancel-btn" style="background-color: var(--color-secondary); color: white; padding: 10px 20px;
+                                 border: none; border-radius: var(--border-radius-base); cursor: pointer; font-weight: 600;
+                                 transition: background-color 0.3s; margin: 0 5px; display: none;">Cancel</button>
+                        </div>
+                    </div>
+                `;
                 document.body.appendChild(modal);
             }
-
-            // The rest of the modal logic remains the same
+            
+            // This function's logic remains the same
         }
     }
 
-    // This ensures initializeAppUI is called once the DOM is fully loaded and currentUser is available
+    // ******** FIX: REPLACED THE OLD TIMER WITH THE OFFICIAL FIREBASE AUTH LISTENER ********
     document.addEventListener('DOMContentLoaded', () => {
-        const checkReadyInterval = setInterval(() => {
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0 && typeof db !== 'undefined') {
-                clearInterval(checkReadyInterval);
+        // This is the single source of truth for authentication status.
+        // It waits for Firebase to initialize before making any decisions.
+        firebase.auth().onAuthStateChanged(user => {
+            const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
+            
+            if (user) {
+                // User is signed IN
+                // If they are on the auth page, send them to the main app.
+                if (isAuthPage) {
+                    window.location.href = './index.html';
+                    return; 
+                }
                 
-                const isIndexPage = window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/index') || window.location.pathname === '/';
-                const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
-                const isGroceryPage = window.location.pathname.endsWith('/grocery_list.html');
+                // On any other page (like index.html), initialize the app UI.
+                // This function will only be called once the user is confirmed.
+                initializeAppUI(user);
 
-                if (window.currentUser) {
-                    if (isIndexPage || isGroceryPage) {
-                        initializeAppUI(window.currentUser);
-                    } else if (isAuthPage) {
-                        window.location.href = './index.html';
-                    }
-                } else {
-                    if (!isAuthPage) {
-                        window.location.href = './auth.html';
-                    }
+            } else {
+                // User is signed OUT
+                // If they are on any page that is NOT the auth page, send them there.
+                if (!isAuthPage) {
+                    window.location.href = './auth.html';
                 }
             }
-        }, 100);
+        });
     });
     </script>
 </body>
