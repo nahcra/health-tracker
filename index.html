@@ -1,27 +1,22 @@
+78% of storage used … If you run out of space, you can't save to Drive or back up Google Photos.
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workout & Food Tracker</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-    <!-- Firebase SDKs - ensure these are loaded before firebase-init.js -->
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-init.js"></script> <!-- Your Firebase initialization and auth logic -->
-
-    <link rel="stylesheet" href="style.css"> <!-- Your updated styles -->
+    <script src="firebase-init.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div class="welcome-screen">
         <div class="logo-container">
-            <!-- Modernized SVG Logo -->
             <svg class="welcome-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -38,7 +33,6 @@
         </div>
         <h1 class="welcome-title">Fitness Forge</h1>
     </div>
-
     <div class="container">
         <div class="profile-section">
             <h2>My Profile</h2>
@@ -51,44 +45,52 @@
                 <button id="logout-btn" class="btn">Logout</button>
             </div>
         </div>
-
-        <h1>Your Personalized Plan</h1> 
-        
+        <h1>Your Personalized Plan</h1>
         <div class="program-selection-section">
             <h2>Choose Your Challenge</h2>
-            <select id="programSelect">
-                <!-- Options will be dynamically loaded by JavaScript -->
-            </select>
+            <select id="programSelect"></select>
             <div style="text-align: center; margin-top: 20px;">
                 <label for="startDatePicker" style="font-size: 1.1rem; margin-right: 10px; color: var(--color-text-light);">Plan Starts On:</label>
                 <input type="date" id="startDatePicker" style="padding: 8px; border-radius: var(--border-radius-base); border: 1px solid var(--color-border-subtle); background-color: var(--color-input-background); color: var(--color-text-light);">
             </div>
             <button id="generateWorkoutBtn" class="btn primary-btn" style="margin-top: 20px; width: auto; padding: 12px 25px;">✨ Generate New Workout Day</button>
         </div>
-
-        <section id="health-plan-container"></section> 
-        
+        <section id="health-plan-container"></section>
         <div class="missed-workouts-section">
             <h2>Missed Entries</h2>
             <ul id="missed-workouts-list"></ul>
         </div>
     </div>
-
     <footer class="app-footer">
         <p>© 2024 Fitness Forge. All rights reserved.</p>
     </footer>
-
     <script>
-    // Global variables for the current authenticated user (set by firebase-init.js)
-    // db is also globally available from firebase-init.js
-    // currentUser is set by firebase-init.js's onAuthStateChanged listener
-    let currentUser = null; 
+    // App state management
+    const appState = {
+        currentUser: null,
+        eventListenersInitialized: false,
+        saveTimeout: null,
+        isInitialized: false
+    };
 
-    // This function is called by firebase-init.js when auth state changes
-    // It's crucial for ensuring Firestore operations are performed with a valid user ID.
-    async function initializeAppUI(user) { // Made async to await data loading
-        currentUser = user; // Set the global currentUser for this session
+    // Debounce function to prevent excessive saves
+    function debounce(func, wait) {
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(appState.saveTimeout);
+                func(...args);
+            };
+            clearTimeout(appState.saveTimeout);
+            appState.saveTimeout = setTimeout(later, wait);
+        };
+    }
 
+    // Initialize app UI with proper error handling
+    async function initializeAppUI(user) {
+        if (appState.isInitialized) return; // Prevent double initialization
+        appState.isInitialized = true;
+        appState.currentUser = user;
+        
         const userNameInput = document.getElementById('userName');
         const userWeightInput = document.getElementById('userWeight');
         const startDatePicker = document.getElementById('startDatePicker');
@@ -96,21 +98,30 @@
         const missedWorkoutsList = document.getElementById('missed-workouts-list');
         const programSelect = document.getElementById('programSelect');
         const generateWorkoutBtn = document.getElementById('generateWorkoutBtn');
-        const welcomeScreen = document.querySelector('.welcome-screen'); // Get welcome screen reference here
-
-        // --- FIREBASE DATA FUNCTIONS ---
-        // Reference to the user's document in Firestore
-        // Use the global `db` initialized in firebase-init.js
-        const userDocRef = db.collection('users').doc(currentUser.uid);
-
+        const welcomeScreen = document.querySelector('.welcome-screen');
+        
+        // Validate Firebase is ready
+        if (!window.db) {
+            console.error("Firebase database not initialized");
+            showCustomModal("Error: Database connection failed. Please refresh the page.");
+            return;
+        }
+        
+        const userDocRef = window.db.collection('users').doc(appState.currentUser.uid);
+        
+        // Debounced save function
+        const debouncedSave = debounce(async (name, weight, programId, startDate) => {
+            await saveProfileData(name, weight, programId, startDate);
+        }, 500);
+        
         // Save profile data to Firestore
         async function saveProfileData(name, weight, selectedProgramId, planStartDate) {
             try {
                 const dataToSave = {
-                    userName: name,
-                    userWeight: weight,
-                    selectedProgramId: selectedProgramId,
-                    planStartDate: planStartDate,
+                    userName: name || '',
+                    userWeight: weight || '',
+                    selectedProgramId: selectedProgramId || '3-week-bootcamp',
+                    planStartDate: planStartDate || new Date().toISOString().split('T')[0],
                     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 await userDocRef.set(dataToSave, { merge: true });
@@ -120,7 +131,7 @@
                 showCustomModal("Error saving profile data. Please check your internet connection.");
             }
         }
-
+        
         // Load profile data from Firestore
         async function loadProfileData() {
             try {
@@ -129,42 +140,53 @@
                     const data = doc.data();
                     userNameInput.value = data.userName || '';
                     userWeightInput.value = data.userWeight || '';
-                    // Set selected program and start date from loaded data
-                    if (data.selectedProgramId) {
+                    
+                    if (data.selectedProgramId && programSelect.querySelector(`option[value="${data.selectedProgramId}"]`)) {
                         programSelect.value = data.selectedProgramId;
                     }
+                    
                     if (data.planStartDate) {
                         startDatePicker.value = data.planStartDate;
+                    } else {
+                        startDatePicker.value = new Date().toISOString().split('T')[0];
                     }
-                    // After loading profile, render the plan
-                    await renderHealthPlan(); // Await rendering
+                    
+                    await renderHealthPlan();
                 } else {
                     console.log("No profile data found for this user. Creating a new profile.");
-                    // If no profile, set default values and save
                     const todayISO = new Date().toISOString().split('T')[0];
                     startDatePicker.value = todayISO;
-                    programSelect.value = '3-week-bootcamp'; // Default to the first program
+                    programSelect.value = '3-week-bootcamp';
                     await saveProfileData('', '', programSelect.value, todayISO);
-                    await renderHealthPlan(); // Await rendering
+                    await renderHealthPlan();
                 }
             } catch (e) {
                 console.error("Error loading profile data: ", e);
                 showCustomModal("Error loading user profile. Please try refreshing the page.");
             }
         }
-
-        // Save individual card state (checkboxes, time inputs) to Firestore
+        
+        // Save individual card state
         async function saveCardStateToFirestore(cardId, data) {
             try {
-                await userDocRef.collection('daily_entries').doc(cardId).set(data, { merge: true });
-                // console.log(`Card state for ${cardId} saved.`); // Keep commented for less console spam
+                const existingDoc = await userDocRef.collection('daily_entries').doc(cardId).get();
+                const existingData = existingDoc.exists ? existingDoc.data() : {};
+                
+                const mergedData = {
+                    ...existingData,
+                    ...data,
+                    checkboxes: { ...(existingData.checkboxes || {}), ...(data.checkboxes || {}) },
+                    times: { ...(existingData.times || {}), ...(data.times || {}) },
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                await userDocRef.collection('daily_entries').doc(cardId).set(mergedData);
             } catch (e) {
                 console.error(`Error saving card state for ${cardId}: `, e);
-                showCustomModal("Error saving workout progress. Please check your internet connection.");
             }
         }
-
-        // Load individual card state from Firestore
+        
+        // Load individual card state
         async function loadCardStateFromFirestore(cardId) {
             try {
                 const doc = await userDocRef.collection('daily_entries').doc(cardId).get();
@@ -173,29 +195,43 @@
                 }
             } catch (e) {
                 console.error(`Error loading card state for ${cardId}: `, e);
-                // Don't show modal for every card load error, as it can be too many
             }
             return null;
         }
-
-        // --- INITIAL LOAD & EVENT LISTENERS ---
-        await loadProfileData(); // Ensure profile data and initial plan are loaded before hiding welcome screen
-
-        // Hide welcome screen only after initial data is loaded and rendered
+        
+        // Populate programs and load data
+        populateProgramSelect();
+        await loadProfileData();
+        
+        // Hide welcome screen after data is loaded
         welcomeScreen.classList.add('hidden');
-
-        userNameInput.addEventListener('input', (e) => saveProfileData(e.target.value, userWeightInput.value, programSelect.value, startDatePicker.value));
-        userWeightInput.addEventListener('input', (e) => saveProfileData(userNameInput.value, e.target.value, programSelect.value, startDatePicker.value));
+        
+        // Event listeners with debouncing
+        userNameInput.addEventListener('input', (e) => 
+            debouncedSave(e.target.value, userWeightInput.value, programSelect.value, startDatePicker.value)
+        );
+        
+        userWeightInput.addEventListener('input', (e) => 
+            debouncedSave(userNameInput.value, e.target.value, programSelect.value, startDatePicker.value)
+        );
+        
         startDatePicker.addEventListener('change', async function() {
-            await saveProfileData(userNameInput.value, userWeightInput.value, programSelect.value, this.value);
-            renderHealthPlan(); // Re-render the plan with the new start date
+            const dateValue = this.value;
+            if (dateValue && isValidDate(dateValue)) {
+                await saveProfileData(userNameInput.value, userWeightInput.value, programSelect.value, dateValue);
+                renderHealthPlan();
+            } else {
+                showCustomModal("Please enter a valid date.");
+                this.value = new Date().toISOString().split('T')[0];
+            }
         });
+        
         programSelect.addEventListener('change', async function() {
             await saveProfileData(userNameInput.value, userWeightInput.value, this.value, startDatePicker.value);
-            renderHealthPlan(); // Re-render the plan with the new program
+            renderHealthPlan();
         });
-
-        // --- WORKOUT & FOOD PLAN TEMPLATE DATA (Expanded for multiple programs) ---
+        
+        // Workout programs data
         const workoutPrograms = [
             {
                 id: '3-week-bootcamp',
@@ -204,20 +240,18 @@
                 duration: '3 Weeks',
                 days: [
                     { title: 'Full Body Blast', type: 'strength', quote: "The only bad workout is the one that didn't happen.", exercises: [{ name: 'Squats', sets: 3, reps: 12 }, { name: 'Push-ups', sets: 3, reps: 'To Failure' }, { name: 'Dumbbell Rows', sets: 3, reps: 12 }, { name: 'Plank', sets: 3, reps: '60s Hold' }], meals: { breakfast: 'Oatmeal (1/2 cup dry) with berries and a scoop of protein powder.', lunch: 'Large mixed green salad with grilled chicken (4oz) and light vinaigrette.', dinner: 'Baked salmon (5oz) with roasted broccoli and quinoa (1/2 cup cooked).', snacks: 'Apple slices with a tablespoon of almond butter.' } },
-                    { title: 'HIIT Cardio & Abs', type: 'cardio', quote: "Your body can stand almost anything. It’s your mind that you have to convince.", description: '30 minutes of High-Intensity Interval Training (HIIT) followed by 15 minutes of core exercises.', meals: { breakfast: 'Greek yogurt (1 cup) with chia seeds and a banana.', lunch: 'Turkey breast slices (4oz) wrapped in large lettuce leaves with bell peppers and hummus.', dinner: 'Lentil soup (1.5 cups) with a side of whole-grain toast.', snacks: 'Handful of almonds.' } },
+                    { title: 'HIIT Cardio & Abs', type: 'cardio', quote: "Your body can stand almost anything. It's your mind that you have to convince.", description: '30 minutes of High-Intensity Interval Training (HIIT) followed by 15 minutes of core exercises.', meals: { breakfast: 'Greek yogurt (1 cup) with chia seeds and a banana.', lunch: 'Turkey breast slices (4oz) wrapped in large lettuce leaves with bell peppers and hummus.', dinner: 'Lentil soup (1.5 cups) with a side of whole-grain toast.', snacks: 'Handful of almonds.' } },
                     { title: 'Upper Body Focus', type: 'strength', quote: "Consistency is key to unlocking your full potential.", exercises: [{ name: 'Overhead Press', sets: 3, reps: 10 }, { name: 'Bicep Curls', sets: 3, reps: 12 }, { name: 'Tricep Dips', sets: 3, reps: 'To Failure' }, { name: 'Lateral Raises', sets: 3, reps: 15 }], meals: { breakfast: 'Scrambled eggs (2) with spinach and a slice of whole-grain toast.', lunch: 'Leftover lentil soup.', dinner: 'Chicken stir-fry (5oz chicken) with mixed vegetables and brown rice (1/2 cup cooked).', snacks: 'Protein shake.' } },
                     { title: 'Lower Body & Glutes', type: 'strength', quote: "Don't skip leg day. It's the foundation of a strong body.", exercises: [{ name: 'Goblet Squats', sets: 4, reps: 10 }, { name: 'Lunges', sets: 3, reps: 10, side: 'each leg' }, { name: 'Glute Bridges', sets: 3, reps: 15 }, { name: 'Calf Raises', sets: 3, reps: 20 }], meals: { breakfast: 'Smoothie: almond milk, spinach, banana, protein powder.', lunch: 'Tuna salad (canned in water) with cucumber and whole-grain crackers.', dinner: 'Lean beef (4oz) with sweet potato and green beans.', snacks: 'Rice cakes with avocado.' } },
                     { title: 'Active Recovery', type: 'recovery', quote: "Recovery is just as important as the workout itself.", description: '30 minutes of light stretching, foam rolling, or gentle yoga.', meals: { breakfast: 'Cottage cheese (1 cup) with sliced pineapple and flax seeds.', lunch: 'Leftover lean beef and vegetables.', dinner: 'Vegetable curry (chickpeas, lentils, mixed veggies) with a small portion of brown rice.', snacks: 'Greek yogurt.' } },
-                    { title: 'Rest Day', type: 'rest', quote: "A day of rest is a part of your training.", description: 'Full rest. Focus on hydration and nutrient-dense foods.', meals: { breakfast: 'Whole-grain toast (2 slices) with avocado and a sprinkle of chili flakes.', lunch: 'Shrimp salad (4oz shrimp) with mixed greens and a light dressing.', dinner: 'Baked cod (5oz) with roasted asparagus and a side salad.', snacks: 'Mixed nuts (small handful).' } },
+                    { title: 'Rest Day', type: 'rest', quote: "A day of rest is a part of your training.", description: 'Full rest. Focus on hydration and nutrient-dense foods.', meals: { breakfast: 'Whole-grain toast (2 sl ices) with avocado and a sprinkle of chili flakes.', lunch: 'Shrimp salad (4oz shrimp) with mixed greens and a light dressing.', dinner: 'Baked cod (5oz) with roasted asparagus and a side salad.', snacks: 'Mixed nuts (small handful).' } },
                     { title: 'Full Body Strength', type: 'strength', quote: "You don't have to be extreme, just consistent.", exercises: [{ name: 'Deadlifts', sets: 3, reps: 8 }, { name: 'Overhead Press', sets: 3, reps: 10 }, { name: 'Bent-Over Rows', sets: 3, reps: 10 }, { name: 'Front Squats', sets: 3, reps: 12 }], meals: { breakfast: 'Protein pancakes (2) with berries and sugar-free syrup.', lunch: 'Quinoa salad with black beans, corn, bell peppers, and grilled chicken (4oz).', dinner: 'Turkey meatballs (5oz) with zucchini noodles and tomato sauce.', snacks: 'Hard-boiled eggs (2).' } },
-                    // Week 2 continues the pattern, slightly increasing intensity or varying exercises
                     { title: 'Cardio Intervals', type: 'cardio', quote: "If it doesn't challenge you, it doesn't change you.", description: '40 minutes of advanced interval cardio (e.g., sprints, jump rope).', meals: { breakfast: 'Scrambled tofu with vegetables and whole-grain toast.', lunch: 'Leftover quinoa salad.', dinner: 'Baked chicken breast (5oz) with sweet potato fries and steamed green beans.', snacks: 'Cottage cheese.' } },
                     { title: 'Chest & Triceps', type: 'strength', quote: "Push yourself because no one else is going to do it for you.", exercises: [{ name: 'Incline Dumbbell Press', sets: 4, reps: 10 }, { name: 'Cable Flyes', sets: 3, reps: 15 }, { name: 'Close-Grip Push-ups', sets: 3, reps: 'To Failure' }, { name: 'Triceps Pushdowns', sets: 3, reps: 12 }], meals: { breakfast: 'Greek yogurt (1 cup) with granola and mixed berries.', lunch: 'Tuna sandwich on whole-grain bread with lettuce and tomato.', dinner: 'Salmon fillets (5oz) with roasted Brussels sprouts and brown rice.', snacks: 'Protein bar.' } },
                     { title: 'Back & Biceps', type: 'strength', quote: "Strive for progress, not perfection.", exercises: [{ name: 'Pull-ups / Lat Pulldowns', sets: 4, reps: 8 }, { name: 'Seated Cable Rows', sets: 3, reps: 12 }, { name: 'Hammer Curls', sets: 3, reps: 12 }, { name: 'Face Pulls', sets: 3, reps: 15 }], meals: { breakfast: 'Spinach and mushroom omelette (2 eggs) with a side of fruit.', lunch: 'Leftover salmon and vegetables.', dinner: 'Lean ground turkey (5oz) stir-fry with bell peppers, onions, and cauliflower rice.', snacks: 'Rice cakes with peanut butter.' } },
                     { title: 'Full Body Recovery', type: 'recovery', quote: "Listen to your body, it knows best.", description: '45 minutes of deep tissue foam rolling and static stretching.', meals: { breakfast: 'Smoothie: almond milk, kale, banana, protein powder.', lunch: 'Chicken breast (4oz) with a large mixed green salad.', dinner: 'Cod (5oz) baked with lemon and herbs, served with steamed green beans.', snacks: 'Handful of walnuts.' } },
                     { title: 'Rest Day', type: 'rest', quote: "Recharge and come back stronger.", description: 'Complete rest. Focus on nutrient timing and sleep.', meals: { breakfast: 'Cottage cheese (1 cup) with sliced peaches and a sprinkle of cinnamon.', lunch: 'Leftover chicken and salad.', dinner: 'Baked sweet potato (medium) topped with black beans, salsa, and avocado.', snacks: 'Edamame.' } },
                     { title: 'Legs & Shoulders', type: 'strength', quote: "Every day is a new chance to get stronger.", exercises: [{ name: 'Barbell Squats', sets: 4, reps: 8 }, { name: 'Leg Press', sets: 3, reps: 12 }, { name: 'Dumbbell Shoulder Press', sets: 3, reps: 10 }, { name: 'Front Raises', sets: 3, reps: 15 }], meals: { breakfast: 'Protein oatmeal with berries and chopped nuts.', lunch: 'Turkey burger (no bun) with a large side salad.', dinner: 'Chicken breast (5oz) with roasted root vegetables (carrots, parsnips).', snacks: 'Protein shake.' } },
-                    // Week 3 continues, potentially with higher intensity or new variations
                     { title: 'Core & Stability', type: 'cardio', quote: "Strong core, strong body.", description: '30 minutes of core-focused exercises and stability work.', meals: { breakfast: 'Greek yogurt (1 cup) with honey and a sprinkle of granola.', lunch: 'Leftover turkey burger and salad.', dinner: 'Cod (5oz) with steamed broccoli and brown rice.', snacks: 'Orange.' } },
                     { title: 'Full Body Circuit', type: 'strength', quote: "Challenge yourself, it's the only path to growth.", exercises: [{ name: 'Kettlebell Swings', sets: 3, reps: 15 }, { name: 'Renegade Rows', sets: 3, reps: 10, side: 'each arm' }, { name: 'Box Jumps', sets: 3, reps: 10 }, { name: 'Burpees', sets: 3, reps: 'To Failure' }], meals: { breakfast: 'Scrambled eggs (2) with avocado and a side of salsa.', lunch: 'Quinoa bowl with roasted vegetables and chickpeas.', dinner: 'Grilled chicken (5oz) with a large spinach salad and balsamic vinaigrette.', snacks: 'Cucumber slices with hummus.' } },
                     { title: 'Flexibility & Mobility', type: 'recovery', quote: "Flexibility is the key to longevity.", description: '40 minutes of dynamic and static stretching to improve range of motion.', meals: { breakfast: 'Protein smoothie: almond milk, banana, spinach, protein powder.', lunch: 'Leftover quinoa bowl.', dinner: 'Tuna steak (5oz) with grilled asparagus and a small sweet potato.', snacks: 'Handful of berries.' } },
@@ -238,7 +272,6 @@
                     { title: 'Upper Body Hypertrophy', type: 'strength', quote: "Pump it up!", exercises: [{ name: 'Dumbbell Bench Press', sets: 3, reps: 12 }, { name: 'Cable Crossovers', sets: 3, reps: 15 }, { name: 'Seated Dumbbell Shoulder Press', sets: 3, reps: 12 }, { name: 'Lateral Raises', sets: 3, reps: 15 }, { name: 'Preacher Curls', sets: 3, reps: 12 }, { name: 'Triceps Rope Pushdowns', sets: 3, reps: 15 }], meals: { breakfast: 'Oatmeal with berries and a scoop of protein powder.', lunch: 'Turkey burger (no bun) with a large side salad and a whole-grain bun on the side.', dinner: 'Baked chicken thighs (6oz) with roasted potatoes and carrots.', snacks: 'Protein bar.' } },
                     { title: 'Rest Day', type: 'rest', quote: "Growth happens during rest.", description: 'Complete rest. Focus on high-quality protein intake and sleep.', meals: { breakfast: 'Scrambled eggs (3) with avocado and a fruit.', lunch: 'Large mixed green salad with grilled chicken (5oz).', dinner: 'Lentil and vegetable stew with a side of whole-grain bread.', snacks: 'Protein shake.' } },
                     { title: 'Lower Body Hypertrophy', type: 'strength', quote: "Legs of steel, glutes of glory.", exercises: [{ name: 'Leg Press', sets: 4, reps: 12 }, { name: 'Leg Extensions', sets: 3, reps: 15 }, { name: 'Hamstring Curls', sets: 3, reps: 15 }, { name: 'Calf Raises (Seated & Standing)', sets: 4, reps: 20 }], meals: { breakfast: 'Protein pancakes with berries and maple syrup.', lunch: 'Leftover lentil stew.', dinner: 'Baked cod (6oz) with sweet potato and green beans.', snacks: 'Greek yogurt.' } },
-                    // ... (Repeat pattern for 6 weeks, varying exercises and intensity)
                 ]
             },
             {
@@ -254,7 +287,6 @@
                     { title: 'Long Duration Cardio', type: 'cardio', quote: "Endurance builds resilience.", description: '45-60 minutes of steady-state cardio (e.g., brisk walking, jogging, cycling).', meals: { breakfast: 'Cottage cheese (1 cup) with a few sliced strawberries.', lunch: 'Leftover grilled chicken and vegetables.', dinner: 'Baked salmon (5oz) with a large portion of mixed steamed vegetables.', snacks: 'Rice cakes (1-2).' } },
                     { title: 'Rest Day', type: 'rest', quote: "Rest, refuel, restart.", description: 'Complete rest. Focus on hydration and mindful eating.', meals: { breakfast: 'Greek yogurt (1 cup) with a few raspberries.', lunch: 'Large mixed green salad with hard-boiled eggs (2) and light dressing.', dinner: 'Vegetable soup (broth-based) with a small piece of whole-grain bread.', snacks: 'Small orange.' } },
                     { title: 'Full Body HIIT', type: 'cardio', quote: "Push your limits.", exercises: [{ name: 'High Knees', sets: 3, reps: 45, side: 'seconds' }, { name: 'Burpee Broad Jumps', sets: 3, reps: 10 }, { name: 'Plank Jacks', sets: 3, reps: 30 }, { name: 'Squat Jumps', sets: 3, reps: 15 }], meals: { breakfast: 'Protein oatmeal with a few blueberries.', lunch: 'Chicken breast (4oz) with a large mixed green salad.', dinner: 'Cod (5oz) with roasted asparagus and a small portion of brown rice.', snacks: 'Small handful of almonds.' } },
-                    // ... (Repeat pattern for 4 weeks, adjusting intensity)
                 ]
             },
             {
@@ -271,7 +303,6 @@
                     { title: 'Rest Day', type: 'rest', quote: "Recover, rebuild, grow.", description: 'Complete rest. Focus on high-quality protein and complex carbs.', meals: { breakfast: 'Scrambled eggs (4) with avocado and 2 slices whole-grain toast.', lunch: 'Large mixed green salad with grilled salmon (6oz).', dinner: 'Lentil and vegetable stew with a large piece of whole-grain bread.', snacks: 'Protein shake.' } },
                     { title: 'Upper/Lower Split (Upper)', type: 'strength', quote: "Targeted growth.", exercises: [{ name: 'Incline Barbell Press', sets: 4, reps: '8-12' }, { name: 'Pull-ups', sets: 4, reps: 'To Failure' }, { name: 'Dumbbell Rows', sets: 3, reps: '10-15' }, { name: 'Overhead Press', sets: 3, reps: '8-12' }, { name: 'Bicep Curls', sets: 3, reps: '10-15' }, { name: 'Triceps Extensions', sets: 3, reps: '12-15' }], meals: { breakfast: 'Protein oatmeal with peanut butter and banana.', lunch: 'Chicken and vegetable wraps (whole-grain tortillas).', dinner: 'Lean steak (7oz) with brown rice and mixed vegetables.', snacks: 'Greek yogurt.' } },
                     { title: 'Upper/Lower Split (Lower)', type: 'strength', quote: "Foundation and power.", exercises: [{ name: 'Front Squats', sets: 4, reps: '8-12' }, { name: 'Leg Curls', sets: 3, reps: '12-15' }, { name: 'Leg Extensions', sets: 3, reps: '12-15' }, { name: 'Glute Bridges (Weighted)', sets: 3, reps: '15-20' }, { name: 'Calf Raises', sets: 4, reps: '20-25' }], meals: { breakfast: 'Scrambled eggs (4) with sweet potato hash.', lunch: 'Leftover steak and vegetables.', dinner: 'Salmon fillets (7oz) with quinoa and roasted asparagus.', snacks: 'Protein shake.' } },
-                    // ... (Continue for 8 weeks, adding more exercises and varying sets/reps)
                 ]
             },
             {
@@ -283,14 +314,13 @@
                     { title: 'Strength & Conditioning (Full Body)', type: 'strength', quote: "Transform your body, transform your life.", exercises: [{ name: 'Barbell Squats', sets: 4, reps: '8-10' }, { name: 'Bench Press', sets: 4, reps: '8-10' }, { name: 'Bent-Over Rows', sets: 4, reps: '8-10' }, { name: 'Overhead Press', sets: 3, reps: '10-12' }], meals: { breakfast: 'Oatmeal with protein powder, mixed berries, and flax seeds.', lunch: 'Large chicken salad with mixed greens, cucumber, tomatoes, and a light vinaigrette.', dinner: 'Baked cod (6oz) with quinoa (1 cup cooked) and steamed green beans.', snacks: 'Apple with peanut butter.' } },
                     { title: 'HIIT & Core Blast', type: 'cardio', quote: "No pain, no gain... but smart pain!", description: '30 minutes of high-intensity interval training (e.g., burpees, jump squats, sprints) followed by 15 minutes of dynamic core exercises.', meals: { breakfast: 'Greek yogurt (1.5 cups) with sliced banana and a sprinkle of chia seeds.', lunch: 'Turkey breast slices (5oz) with a large mixed vegetable salad.', dinner: 'Lentil and vegetable curry with a small portion of brown rice.', snacks: 'Handful of almonds.' } },
                     { title: 'Active Recovery & Flexibility', type: 'recovery', quote: "The body achieves what the mind believes.", description: '45 minutes of foam rolling, dynamic stretching, and light yoga poses.', meals: { breakfast: 'Scrambled eggs (3) with spinach and a slice of whole-grain toast.', lunch: 'Leftover lentil curry.', dinner: 'Grilled salmon (6oz) with roasted asparagus and a side salad.', snacks: 'Protein shake.' } }
-                    // ... (This program would have many more days, repeating patterns and progressively increasing intensity/volume over 12 weeks)
                 ]
             }
         ];
-
+        
         // Populate the program select dropdown
         function populateProgramSelect() {
-            programSelect.innerHTML = ''; // Clear existing options
+            programSelect.innerHTML = '';
             workoutPrograms.forEach(program => {
                 const option = document.createElement('option');
                 option.value = program.id;
@@ -298,36 +328,44 @@
                 programSelect.appendChild(option);
             });
         }
-        populateProgramSelect(); // Call on app UI initialization
-
-        // Function to render the health plan dynamically based on selected program
+        
+        // Date validation helper
+        function isValidDate(dateString) {
+            const date = new Date(dateString);
+            return date instanceof Date && !isNaN(date) && dateString.match(/^\d{4}-\d{2}-\d{2}$/);
+        }
+        
+        // Function to render the health plan
         async function renderHealthPlan() {
-            healthPlanContainer.innerHTML = ''; // Clear existing cards
-            
+            healthPlanContainer.innerHTML = '';
             const selectedProgramId = programSelect.value;
             const selectedProgram = workoutPrograms.find(p => p.id === selectedProgramId);
-
+            
             if (!selectedProgram) {
                 healthPlanContainer.innerHTML = '<p style="text-align: center; color: var(--color-danger);">Selected workout program not found.</p>';
                 return;
             }
-
-            // Crucial fix: Ensure startDate is parsed correctly as local date
-            const startDate = new Date(startDatePicker.value + 'T00:00:00'); 
+            
+            // Parse date properly
+            const dateValue = startDatePicker.value;
+            if (!dateValue || !isValidDate(dateValue)) {
+                showCustomModal("Invalid date selected. Please choose a valid date.");
+                return;
+            }
+            
+            const startDate = new Date(dateValue + 'T00:00:00');
             
             for (let i = 0; i < selectedProgram.days.length; i++) {
                 const dayTemplate = selectedProgram.days[i];
                 const currentDate = new Date(startDate);
-                currentDate.setDate(startDate.getDate() + i); // Add days based on index
-
+                currentDate.setDate(startDate.getDate() + i);
+                
                 const formattedDate = currentDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric' });
                 const dayOfWeek = currentDate.toLocaleDateString(undefined, { weekday: 'long' });
-
-                const cardId = `${selectedProgramId}_${currentDate.toISOString().split('T')[0]}_day${i}`; // Unique ID: programId_YYYY-MM-DD_dayIndex
+                const cardId = `${selectedProgramId}_${currentDate.toISOString().split('T')[0]}_day${i}`;
                 
                 let cardContent = '';
-
-                if (dayTemplate.quote) cardContent += `<p class="quote-of-the-day">“${dayTemplate.quote}”</p>`;
+                if (dayTemplate.quote) cardContent += `<p class="quote-of-the-day">"${dayTemplate.quote}"</p>`;
                 
                 if (dayTemplate.meals) {
                     cardContent += `<button class="food-toggle">Food Plan <span class="icon">></span></button><div class="food-plan"><ul class="meal-list">`;
@@ -338,163 +376,184 @@
                                 <li class="meal-item">
                                     <span class="meal-desc"><strong>${mealType.charAt(0).toUpperCase() + mealType.slice(1)}:</strong> ${dayTemplate.meals[mealType]}</span>
                                     <div class="meal-controls">
-                                        <input type="time" id="${mealUniqueId}-time">
-                                        <label class="custom-checkbox"><input type="checkbox" id="${mealUniqueId}-check"><span class="checkmark"></span></label>
+                                        <input type="time" id="${mealUniqueId}-time" class="meal-time-input">
+                                        <label class="custom-checkbox"><input type="checkbox" id="${mealUniqueId}-check" class="meal-checkbox"><span class="checkmark"></span></label>
                                     </div>
                                 </li>`;
                         }
                     }
                     cardContent += `</ul></div>`;
                 }
-
+                
                 if (dayTemplate.description) cardContent += `<p class="card-text">${dayTemplate.description}</p>`;
-
+                
                 if (dayTemplate.type === 'strength' && dayTemplate.exercises && dayTemplate.exercises.length > 0) {
                     cardContent += '<ul class="exercise-list">';
                     dayTemplate.exercises.forEach((ex, exIndex) => {
-                        const exerciseUniqueId = `${cardId}-ex-${exIndex}`; // Unique ID for exercise
-                        cardContent += `<li class="exercise-item"><span class="exercise-name">${ex.name} (${ex.sets} sets of ${ex.reps})</span>`;
-                        // Removed YouTube link display as per user's request
+                        const exerciseUniqueId = `${cardId}-ex-${exIndex}`;
+                        const repsText = ex.side ? `${ex.reps} ${ex.side}` : ex.reps;
+                        cardContent += `<li class="exercise-item"><span class="exercise-name">${ex.name} (${ex.sets} sets of ${repsText})</span>`;
+                        
                         for (let j = 1; j <= ex.sets; j++) {
-                            cardContent += `<label class="custom-checkbox"><input type="checkbox" id="${exerciseUniqueId}-set${j}"><span class="checkmark"></span>Set ${j}</label>`;
+                            cardContent += `<label class="custom-checkbox"><input type="checkbox" id="${exerciseUniqueId}-set${j}" class="exercise-checkbox"><span class="checkmark"></span>Set ${j}</label>`;
                         }
                         cardContent += '</li>';
                     });
                     cardContent += '</ul><div class="progress-bar-container"><div class="progress-bar"></div></div>';
                 } else if (dayTemplate.type !== 'strength') {
-                    cardContent += `<label class="custom-checkbox" style="font-size: 1.1rem; margin-top: 15px;"><input type="checkbox" id="${cardId}-completed"><span class="checkmark"></span>Mark as Completed</label>`;
+                    cardContent += `<label class="custom-checkbox" style="font-size: 1.1rem; margin-top: 15px;"><input type="checkbox" id="${cardId}-completed" class="day-complete-checkbox"><span class="checkmark"></span>Mark as Completed</label>`;
                 }
                 
                 const card = document.createElement('div');
                 card.className = 'day-card';
-                card.id = cardId; // Use the dynamically generated unique ID
-                card.dataset.date = currentDate.toISOString().split('T')[0]; // Store full ISO date for consistent comparison
+                card.id = cardId;
+                card.dataset.date = currentDate.toISOString().split('T')[0];
                 card.dataset.type = dayTemplate.type;
                 card.innerHTML = `<div class="card-header"><h3>${dayOfWeek}, ${formattedDate}: ${dayTemplate.title}</h3></div><div class="card-body">${cardContent}</div>`;
                 healthPlanContainer.appendChild(card);
             }
-
-            // After all cards are rendered, load their saved states and apply event listeners
+            
             await loadAndApplyCardStates();
-            applyEventListenersToCards(); // Re-apply event listeners after cards are rendered
+            applyEventListenersToCards();
             checkMissedWorkouts();
         }
-
-        // --- LOAD AND APPLY CARD STATES FROM FIREBASE ---
+        
+        // Load and apply card states
         async function loadAndApplyCardStates() {
             const allCards = document.querySelectorAll('.day-card');
+            const loadPromises = [];
+            
             for (const card of allCards) {
-                const cardId = card.id;
-                const savedData = await loadCardStateFromFirestore(cardId);
-                
-                if (savedData) {
-                    // Apply checkbox states
-                    for (const id in savedData.checkboxes || {}) {
-                        const checkbox = document.getElementById(id);
-                        if (checkbox) checkbox.checked = savedData.checkboxes[id];
+                const promise = loadCardStateFromFirestore(card.id).then(savedData => {
+                    if (savedData) {
+                        // Apply checkbox states
+                        for (const id in savedData.checkboxes || {}) {
+                            const checkbox = document.getElementById(id);
+                            if (checkbox) checkbox.checked = savedData.checkboxes[id];
+                        }
+                        // Apply time input values
+                        for (const id in savedData.times || {}) {
+                            const timeInput = document.getElementById(id);
+                            if (timeInput) timeInput.value = savedData.times[id];
+                        }
                     }
-                    // Apply time input values
-                    for (const id in savedData.times || {}) {
-                        const timeInput = document.getElementById(id);
-                        if (timeInput) timeInput.value = savedData.times[id];
-                    }
-                }
-                updateCardState(card); // Update UI (progress bars, completed classes) based on loaded state
+                    updateCardState(card);
+                });
+                loadPromises.push(promise);
             }
+            
+            await Promise.all(loadPromises);
         }
-
-        // --- EVENT LISTENERS & STATE MANAGEMENT ---
+        
+        // Event listeners with delegation
         function applyEventListenersToCards() {
-            // Food toggle buttons
-            document.querySelectorAll('.food-toggle').forEach(button => {
-                button.addEventListener('click', () => {
+            // Remove any existing delegated listeners to prevent duplicates
+            if (appState.eventListenersInitialized) return;
+            appState.eventListenersInitialized = true;
+            
+            // Use event delegation on the container
+            healthPlanContainer.addEventListener('click', function(e) {
+                // Handle food toggle buttons
+                if (e.target.matches('.food-toggle') || e.target.closest('.food-toggle')) {
+                    const button = e.target.closest('.food-toggle');
                     const content = button.nextElementSibling;
                     const icon = button.querySelector('.icon');
                     const isExpanded = content.style.display === 'block';
+                    
                     content.style.display = isExpanded ? 'none' : 'block';
                     if (icon) {
-                        if (isExpanded) {
-                            icon.style.transform = 'rotate(0deg)';
-                        } else {
-                            icon.style.transform = 'rotate(90deg)';
-                        }
+                        icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
                     }
                     button.classList.toggle('expanded', !isExpanded);
-                });
+                }
             });
-
-            // Checkboxes and Time inputs (save to Firestore on change)
-            document.querySelectorAll('.day-card input[type="checkbox"], .day-card input[type="time"]').forEach(input => {
-                input.addEventListener('change', function() {
-                    const card = this.closest('.day-card');
-                    const cardId = card.id;
-                    const fieldId = this.id;
+            
+            // Handle checkbox and time changes with delegation
+            healthPlanContainer.addEventListener('change', function(e) {
+                if (e.target.matches('input[type="checkbox"]') || e.target.matches('input[type="time"]')) {
+                    const card = e.target.closest('.day-card');
+                    if (!card) return;
                     
+                    const cardId = card.id;
+                    const fieldId = e.target.id;
                     let dataToSave = {};
-                    if (this.type === 'checkbox') {
-                        dataToSave = { checkboxes: { [fieldId]: this.checked } };
-                    } else if (this.type === 'time') {
-                        dataToSave = { times: { [fieldId]: this.value } };
+                    
+                    if (e.target.type === 'checkbox') {
+                        dataToSave = { checkboxes: { [fieldId]: e.target.checked } };
+                    } else if (e.target.type === 'time') {
+                        dataToSave = { times: { [fieldId]: e.target.value } };
                     }
+                    
                     saveCardStateToFirestore(cardId, dataToSave);
-                    if(this.type === 'checkbox') updateCardState(card);
-                });
+                    if (e.target.type === 'checkbox') updateCardState(card);
+                }
             });
         }
         
-        // Updates progress bars, completed classes, and checks for missed workouts
+        // Update card state
         function updateCardState(card) {
             if (!card) return;
+            
             const progressBar = card.querySelector('.progress-bar');
             if (progressBar) {
-                const exCheckboxes = card.querySelectorAll('.exercise-item input[type="checkbox"]');
-                const checkedCount = card.querySelectorAll('.exercise-item input[type="checkbox']:checked').length;
+                const exCheckboxes = card.querySelectorAll('.exercise-checkbox');
+                const checkedCount = card.querySelectorAll('.exercise-checkbox:checked').length;
                 progressBar.style.width = exCheckboxes.length > 0 ? (checkedCount / exCheckboxes.length) * 100 + '%' : '0%';
-                exCheckboxes.forEach(cb => {
-                    const item = cb.closest('.exercise-item');
-                    const allSets = item.querySelectorAll('input[type="checkbox']');
-                    // Ensure the exercise item is marked completed only if ALL its sets are checked
+                
+                // Update exercise completion status
+                card.querySelectorAll('.exercise-item').forEach(item => {
+                    const allSets = item.querySelectorAll('.exercise-checkbox');
                     item.classList.toggle('completed', Array.from(allSets).every(set => set.checked));
                 });
             }
             
-            // Check if the entire card (day) is completed
-            const allCheckboxesInCard = card.querySelectorAll('.custom-checkbox input');
-            card.classList.toggle('completed-day', Array.from(allCheckboxesInCard).every(cb => cb.checked));
+            // Check if the entire card is completed
+            const allCheckboxes = card.querySelectorAll('.custom-checkbox input[type="checkbox"]');
+            const isCompleted = allCheckboxes.length > 0 && Array.from(allCheckboxes).every(cb => cb.checked);
+            card.classList.toggle('completed-day', isCompleted);
+            
             checkMissedWorkouts();
         }
-
-        // Checks for and displays missed workouts
+        
+        // Check missed workouts
         function checkMissedWorkouts() {
             missedWorkoutsList.innerHTML = '';
             const today = new Date();
-            today.setHours(0,0,0,0); // Normalize today's date to start of day
+            today.setHours(0, 0, 0, 0);
+            
+            const missedItems = [];
             
             document.querySelectorAll('.day-card').forEach(card => {
-                const cardDate = new Date(card.dataset.date); // Use ISO date from dataset
-                cardDate.setHours(0,0,0,0); // Normalize card date to start of day
-
+                const cardDate = new Date(card.dataset.date);
+                cardDate.setHours(0, 0, 0, 0);
+                
                 const isMissed = (cardDate < today) && !card.classList.contains('completed-day');
                 card.classList.toggle('missed-day', isMissed);
                 
                 if (isMissed) {
-                    const li = document.createElement('li');
-                    li.textContent = `${card.querySelector('h3').textContent.split(': ')[0]}: ${card.querySelector('h3').textContent.split(': ')[1]}`;
-                    missedWorkoutsList.appendChild(li);
+                    const headerText = card.querySelector('h3').textContent;
+                    missedItems.push(headerText);
                 }
             });
-            if(missedWorkoutsList.children.length === 0) {
-                 const li = document.createElement('li');
-                 li.textContent = "No missed entries. Great job!";
-                 missedWorkoutsList.appendChild(li);
+            
+            if (missedItems.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = "No missed entries. Great job!";
+                li.style.color = 'var(--color-success)';
+                missedWorkoutsList.appendChild(li);
+            } else {
+                missedItems.forEach(text => {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    missedWorkoutsList.appendChild(li);
+                });
             }
         }
-
-        // Expose workoutPrograms globally for grocery_list.html
+        
+        // Expose to global scope for other pages
         window.workoutPrograms = workoutPrograms;
-        // window.getCurrentUser is already exposed by firebase-init.js
-
-        // --- LLM Powered Feature: Generate New Workout Day ---
+        
+        // LLM Feature with proper API handling
         generateWorkoutBtn.addEventListener('click', () => {
             showCustomModal(`
                 <h3 style="color: var(--color-primary); margin-bottom: 15px;">Generate a New Workout Day</h3>
@@ -503,11 +562,11 @@
                           style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--color-border-subtle);
                                  background-color: var(--color-input-background); color: var(--color-text-light); resize: vertical;"></textarea>
                 <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
-                    <button id="llm-generate-confirm-btn" class="primary-btn">Generate</button>
-                    <button id="llm-generate-cancel-btn" class="btn" style="background-color: var(--color-secondary);">Cancel</button>
+                    <button class="primary-btn modal-action-btn" data-action="generate">Generate</button>
+                    <button class="btn modal-action-btn" data-action="cancel" style="background-color: var(--color-secondary);">Cancel</button>
                 </div>
-            `, (confirmed) => {
-                if (confirmed) {
+            `, (action) => {
+                if (action === 'generate') {
                     const promptText = document.getElementById('llm-prompt-input').value;
                     if (promptText.trim()) {
                         generateWorkoutDayWithLLM(promptText);
@@ -515,44 +574,46 @@
                         showCustomModal("Please provide a description for the workout day.");
                     }
                 }
-            }, true); // Pass true to indicate it's a custom content modal, not just alert/confirm
+            }, true);
         });
-
+        
         async function generateWorkoutDayWithLLM(userPrompt) {
             generateWorkoutBtn.disabled = true;
             generateWorkoutBtn.textContent = 'Generating...';
-            showCustomModal("Generating your workout day... This may take a moment. Please do not close this window.", null, false); // Show loading modal
-
+            showCustomModal("Generating your workout day... This may take a moment.", null, false);
+            
             try {
-                let chatHistory = [];
                 const prompt = `Generate a single workout day plan in JSON format based on the following user request: "${userPrompt}".
                 The JSON should have the following structure:
                 {
-                  "title": "Generated Day Title (e.g., 'Full Body Strength')",
+                  "title": "Generated Day Title",
                   "type": "strength" | "cardio" | "recovery" | "rest",
-                  "quote": "A short motivational quote related to the day's theme.",
-                  "description": "Optional brief description for cardio/recovery/rest days (omit for strength days).",
-                  "exercises": [
-                    { "name": "Exercise Name", "sets": "Number of sets (e.g., 3, 4)", "reps": "Number of reps (e.g., 10, 12, 'To Failure', '60s Hold')" }
-                  ],
+                  "quote": "A short motivational quote",
+                  "description": "Optional description (for non-strength days)",
+                  "exercises": [{"name": "Exercise Name", "sets": "3", "reps": "12"}],
                   "meals": {
-                    "breakfast": "Breakfast description (e.g., 'Oatmeal with berries').",
-                    "lunch": "Lunch description.",
-                    "dinner": "Dinner description.",
-                    "snacks": "Snacks description (or 'N/A' if none)."
+                    "breakfast": "Meal description",
+                    "lunch": "Meal description",
+                    "dinner": "Meal description",
+                    "snacks": "Snack description"
                   }
+                }`;
+                
+                const apiKey = window.GEMINI_API_KEY || ""; // Use environment variable or config
+                if (!apiKey) {
+                    throw new Error("API key not configured. Please set up your API key.");
                 }
                 
-                Ensure the exercises are relevant to the workout type and description. If the type is 'strength', 'exercises' should be an array of objects. If 'cardio', 'recovery', or 'rest', 'exercises' should be omitted and 'description' should be present. Provide realistic sets and reps. Make sure the meals are balanced and appropriate for the workout type.`;
-
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
                 const payload = {
-                    contents: chatHistory,
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: prompt }]
+                    }],
                     generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "OBJECT",
-                            properties: {
+                        "responseMimeType": "application/json",
+                        "responseSchema": {
+                            "type": "OBJECT",
+                            "properties": {
                                 "title": { "type": "STRING" },
                                 "type": { "type": "STRING", "enum": ["strength", "cardio", "recovery", "rest"] },
                                 "quote": { "type": "STRING" },
@@ -585,49 +646,58 @@
                         }
                     }
                 };
-
-                const apiKey = ""; // Canvas will automatically provide this
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                }
+                
                 const result = await response.json();
+                
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
+                    
                     const jsonString = result.candidates[0].content.parts[0].text;
-                    const generatedDay = JSON.parse(jsonString);
-
-                    // Add the generated day to the current program's days array
+                    let generatedDay;
+                    
+                    try {
+                        generatedDay = JSON.parse(jsonString);
+                    } catch (parseError) {
+                        throw new Error("Failed to parse generated workout data.");
+                    }
+                    
                     const selectedProgram = workoutPrograms.find(p => p.id === programSelect.value);
                     if (selectedProgram) {
                         selectedProgram.days.push(generatedDay);
-                        // Re-render the plan to show the new day
-                        renderHealthPlan();
+                        await renderHealthPlan();
                         showCustomModal("✨ Your new workout day has been generated and added to the plan!");
                     } else {
-                        showCustomModal("Error: Could not find the selected program to add the new day.");
+                        throw new Error("Could not find the selected program.");
                     }
                 } else {
-                    showCustomModal("Failed to generate workout day. Please try again with a different prompt.");
-                    console.error("LLM response structure unexpected:", result);
+                    throw new Error("Invalid response from AI service.");
                 }
             } catch (error) {
-                showCustomModal("An error occurred while generating the workout day: " + error.message);
-                console.error("Error calling Gemini API:", error);
+                console.error("Error generating workout:", error);
+                showCustomModal(`Error: ${error.message || 'Failed to generate workout day. Please try again.'}`);
             } finally {
                 generateWorkoutBtn.disabled = false;
                 generateWorkoutBtn.textContent = '✨ Generate New Workout Day';
             }
         }
-
-        // --- Custom Modal (instead of alert/confirm) ---
-        function showCustomModal(message, onConfirm = null, isCustomContent = false) {
+        
+        // Custom modal with improved handling
+        function showCustomModal(message, onAction = null, isCustomContent = false) {
             const modalId = 'custom-app-modal';
             let modal = document.getElementById(modalId);
+            
             if (!modal) {
                 modal = document.createElement('div');
                 modal.id = modalId;
@@ -637,112 +707,128 @@
                     z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
                 `;
                 modal.innerHTML = `
-                    <div style="background-color: var(--color-card-background); padding: 30px; border-radius: var(--border-radius-base);
-                                box-shadow: var(--shadow-elevation-2); text-align: center; max-width: 500px; width: 90%;
-                                border: 1px solid var(--color-border-subtle); transform: translateY(-20px); transition: transform 0.3s ease;">
-                        <p id="modal-message" style="font-size: 1.1rem; color: var(--color-text-light); margin-bottom: 25px;"></p>
-                        <div id="modal-actions">
-                            <button id="modal-ok-btn" style="background-color: var(--color-primary); color: white; padding: 10px 20px;
-                                border: none; border-radius: var(--border-radius-base); cursor: pointer; font-weight: 600;
-                                transition: background-color 0.3s; margin: 0 5px;">OK</button>
-                            <button id="modal-cancel-btn" style="background-color: var(--color-secondary); color: white; padding: 10px 20px;
-                                border: none; border-radius: var(--border-radius-base); cursor: pointer; font-weight: 600;
-                                transition: background-color 0.3s; margin: 0 5px; display: none;">Cancel</button>
+                    <div class="modal-content" style="background-color: var(--color-card-background); padding: 30px; border-radius: var(--border-radius-base);
+                                 box-shadow: var(--shadow-elevation-2); text-align: center; max-width: 500px; width: 90%;
+                                 border: 1px solid var(--color-border-subtle); transform: translateY(-20px); transition: transform 0.3s ease;">
+                        <div id="modal-message"></div>
+                        <div id="modal-actions" style="margin-top: 20px;">
+                            <button class="btn primary-btn modal-default-ok" style="margin: 0 5px;">OK</button>
+                            <button class="btn modal-default-cancel" style="background-color: var(--color-secondary); margin: 0 5px; display: none;">Cancel</button>
                         </div>
                     </div>
                 `;
                 document.body.appendChild(modal);
             }
-
-            const modalMessageElement = document.getElementById('modal-message');
-            const okBtn = document.getElementById('modal-ok-btn');
-            const cancelBtn = document.getElementById('modal-cancel-btn');
-            const modalContent = modal.querySelector('div');
-
+            
+            const modalMessage = modal.querySelector('#modal-message');
+            const modalActions = modal.querySelector('#modal-actions');
+            const modalContent = modal.querySelector('.modal-content');
+            
+            // Clear previous content
+            modalMessage.innerHTML = '';
+            modalActions.innerHTML = '';
+            
             if (isCustomContent) {
-                modalMessageElement.innerHTML = message;
-                okBtn.textContent = "Generate"; // Change text for generate button
-                cancelBtn.style.display = 'inline-block';
-                okBtn.id = 'llm-generate-confirm-btn'; // Assign new IDs for specific actions
-                cancelBtn.id = 'llm-generate-cancel-btn';
-
-                // Re-attach listeners for dynamically created buttons
-                document.getElementById('llm-generate-confirm-btn').onclick = () => {
-                    modal.style.opacity = '0';
-                    modalContent.style.transform = 'translateY(-20px)';
-                    setTimeout(() => { modal.style.visibility = 'hidden'; }, 300);
-                    if (onConfirm) onConfirm(true);
-                };
-                document.getElementById('llm-generate-cancel-btn').onclick = () => {
-                    modal.style.opacity = '0';
-                    modalContent.style.transform = 'translateY(-20px)';
-                    setTimeout(() => { modal.style.visibility = 'hidden'; }, 300);
-                    if (onConfirm) onConfirm(false);
-                };
-
+                modalMessage.innerHTML = message;
+                // Re-attach event listeners for custom content buttons
+                setTimeout(() => {
+                    modal.querySelectorAll('.modal-action-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const action = this.dataset.action;
+                            closeModal();
+                            if (onAction) onAction(action);
+                        });
+                    });
+                }, 0);
             } else {
-                modalMessageElement.textContent = message;
-                okBtn.textContent = "OK";
-                okBtn.id = 'modal-ok-btn'; // Reset to original IDs
-                cancelBtn.id = 'modal-cancel-btn';
-
+                modalMessage.textContent = message;
+                
+                const okBtn = document.createElement('button');
+                okBtn.className = 'btn primary-btn';
+                okBtn.textContent = 'OK';
                 okBtn.onclick = () => {
-                    modal.style.opacity = '0';
-                    modalContent.style.transform = 'translateY(-20px)';
-                    setTimeout(() => { modal.style.visibility = 'hidden'; }, 300);
-                    if (onConfirm) onConfirm(true);
+                    closeModal();
+                    if (onAction) onAction(true);
                 };
-
-                if (onConfirm) { // If onConfirm is provided, it's a confirmation dialog
-                    cancelBtn.style.display = 'inline-block';
+                modalActions.appendChild(okBtn);
+                
+                if (onAction && typeof onAction === 'function') {
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn';
+                    cancelBtn.style.backgroundColor = 'var(--color-secondary)';
+                    cancelBtn.style.marginLeft = '10px';
+                    cancelBtn.textContent = 'Cancel';
                     cancelBtn.onclick = () => {
-                        modal.style.opacity = '0';
-                        modalContent.style.transform = 'translateY(-20px)';
-                        setTimeout(() => { modal.style.visibility = 'hidden'; }, 300);
-                        onConfirm(false);
+                        closeModal();
+                        onAction(false);
                     };
-                } else { // Otherwise, it's just an alert
-                    cancelBtn.style.display = 'none';
+                    modalActions.appendChild(cancelBtn);
                 }
             }
-
+            
+            function closeModal() {
+                modal.style.opacity = '0';
+                modalContent.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    modal.style.visibility = 'hidden';
+                }, 300);
+            }
+            
+            // Show modal
             modal.style.visibility = 'visible';
             modal.style.opacity = '1';
             modalContent.style.transform = 'translateY(0)';
         }
     }
-
-    // This ensures initializeAppUI is called once the DOM is fully loaded and currentUser is available
+    
+    // Initialize on DOM ready with proper Firebase check
     document.addEventListener('DOMContentLoaded', () => {
-        // Wait for firebase-init.js to set window.currentUser and for `db` to be initialized
+        let checkCount = 0;
+        const maxChecks = 50; // 5 seconds max wait
+        
         const checkReadyInterval = setInterval(() => {
-            // Check if firebase object is defined and if a default app has been initialized
-            // Also check if db is globally available
-            if (typeof firebase !== 'undefined' && firebase.apps.length > 0 && typeof db !== 'undefined') {
+            checkCount++;
+            
+            if (checkCount > maxChecks) {
+                clearInterval(checkReadyInterval);
+                console.error("Firebase initialization timeout");
+                showCustomModal("Error: Failed to initialize. Please refresh the page.");
+                return;
+            }
+            
+            if (typeof firebase !== 'undefined' && 
+                firebase.apps && 
+                firebase.apps.length > 0 && 
+                typeof window.db !== 'undefined') {
+                
                 clearInterval(checkReadyInterval);
                 
-                const isIndexPage = window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/index') || window.location.pathname === '/';
-                const isAuthPage = window.location.pathname.endsWith('/auth.html') || window.location.pathname.endsWith('/auth');
-                const isGroceryPage = window.location.pathname.endsWith('/grocery_list.html');
-
-                if (window.currentUser) {
-                    // User is logged in
-                    if (isIndexPage || isGroceryPage) { // Initialize app UI if on main or grocery page
-                        initializeAppUI(window.currentUser);
-                    } else if (isAuthPage) {
-                        // If on auth page but logged in, redirect to index.html
-                        window.location.href = './index.html';
+                const currentPath = window.location.pathname;
+                const isIndexPage = currentPath.endsWith('/index.html') || 
+                                   currentPath.endsWith('/') || 
+                                   currentPath === '/' ||
+                                   currentPath.endsWith('/index');
+                const isAuthPage = currentPath.endsWith('/auth.html') || 
+                                  currentPath.endsWith('/auth');
+                const isGroceryPage = currentPath.endsWith('/grocery_list.html');
+                
+                // Wait for auth state
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        window.currentUser = user;
+                        if (isIndexPage || isGroceryPage) {
+                            initializeAppUI(user);
+                        } else if (isAuthPage) {
+                            window.location.href = './index.html';
+                        }
+                    } else {
+                        if (!isAuthPage) {
+                            window.location.href = './auth.html';
+                        }
                     }
-                } else {
-                    // User is logged out
-                    // Only redirect if not already on the auth page
-                    if (!isAuthPage) {
-                        window.location.href = './auth.html';
-                    }
-                }
-                // The welcome screen hiding is now handled by initializeAppUI after content loads
+                });
             }
-        }, 100); // Check every 100ms
+        }, 100);
     });
     </script>
 </body>
